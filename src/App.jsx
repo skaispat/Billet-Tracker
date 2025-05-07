@@ -1,55 +1,105 @@
 "use client"
 
-import { useState } from "react"
-import Layout from "./components/layout/Layout"
-import Dashboard from "./components/dashboard/Dashboard"
-import BookingsPage from "./components/bookings/BookingsPage"
-import DailyEntryPage from "./components/dailyEntry/DailyEntryPage"
-import CarServicePage from "./components/services/CarServicePage"
-import BikeServicePage from "./components/services/BikeServicePage"
-import AddServicePage from "./components/services/AddServicePage"
-import ServiceHistoryPage from "./components/services/ServiceHistoryPage"
-import StaffAttendancePage from "./components/staff/StaffAttendancePage"
-import AddStaffPage from "./components/staff/AddStaffPage"
-import StaffHistoryPage from "./components/staff/StaffHistoryPage"
+import { Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { useAuth } from "./lib/auth-context.jsx"
+import { Toaster } from "./components/ui/toaster.jsx"
+import { ThemeProvider } from "./components/theme-provider.jsx"
 
-function App() {
-  const [currentRoute, setCurrentRoute] = useState("/")
+// Pages
+import LoginPage from "./pages/login.jsx"
+import DashboardPage from "./pages/dashboard.jsx"
+import WorkflowPage from "./pages/workflow.jsx"
+import WorkflowEntryPage from "./pages/workflow-entry.jsx"
+import ReceivingPage from "./pages/receiving.jsx"
+import LabTestingPage from "./pages/lab-testing.jsx"
+import TmtPlanningPage from "./pages/tmt-planning.jsx"
+import TmtProductionPage from "./pages/tmt-production.jsx"
 
-  // Simple routing function
-  const renderContent = () => {
-    switch (currentRoute) {
-      case "/":
-        return <Dashboard />
-      case "/bookings":
-        return <BookingsPage />
-      case "/daily-entry":
-        return <DailyEntryPage />
-      case "/services/car":
-        return <CarServicePage />
-      case "/services/bike":
-        return <BikeServicePage />
-      case "/services/add":
-        return <AddServicePage />
-      case "/services/history":
-        return <ServiceHistoryPage />
-      case "/staff/attendance":
-        return <StaffAttendancePage />
-      case "/staff/add":
-        return <AddStaffPage />
-      case "/staff/history":
-        return <StaffHistoryPage />
-      default:
-        return <Dashboard />
-    }
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />
   }
 
+  return children
+}
+
+function App() {
   return (
-    <Layout currentRoute={currentRoute} setCurrentRoute={setCurrentRoute}>
-      {renderContent()}
-    </Layout>
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/workflow"
+          element={
+            <ProtectedRoute>
+              <WorkflowPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/workflow/entry"
+          element={
+            <ProtectedRoute>
+              <WorkflowEntryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/workflow/receiving"
+          element={
+            <ProtectedRoute>
+              <ReceivingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/workflow/lab-testing"
+          element={
+            <ProtectedRoute>
+              <LabTestingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/workflow/tmt-planning"
+          element={
+            <ProtectedRoute>
+              <TmtPlanningPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tmt-production"
+          element={
+            <ProtectedRoute>
+              <TmtProductionPage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+
+      <Toaster />
+    </ThemeProvider>
   )
 }
 
 export default App
-
