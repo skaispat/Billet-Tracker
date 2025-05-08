@@ -283,78 +283,70 @@ export default function ReceivingPage() {
   }, [])
 
   // Add this function to fetch RECEIVING sheet data directly
-const fetchReceivingSheetData = async () => {
-  try {
-    console.log("Fetching data from RECEIVING sheet...");
-    
-    // Use the direct Google Sheets URL format
-    const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=RECEIVING`;
-    
-    const response = await fetch(sheetUrl);
-    const textData = await response.text();
-    
-    // Parse the response
-    const jsonText = textData.substring(
-      textData.indexOf('{'),
-      textData.lastIndexOf('}') + 1
-    );
-    
-    const parsedData = JSON.parse(jsonText);
-    
-    if (parsedData && parsedData.table) {
-      // Get the column headers from the first row
-      const headers = parsedData.table.cols.map(col => col.label);
+  const fetchReceivingSheetData = async () => {
+    try {
+      console.log("Fetching data from RECEIVING sheet...");
       
-      // Convert the table data to rows
-      const rows = parsedData.table.rows.map(row => {
-        return row.c.map(cell => {
-          // Properly handle Google Sheets date format
-          if (cell && cell.v !== null) {
-            // If it's a Google Sheets date cell
-            if (cell.f && typeof cell.v === 'object' && cell.v.toString() === '[object Object]') {
-              return cell.f; // Use the formatted value which is often "Date(...)"
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=RECEIVING`;
+      const response = await fetch(sheetUrl);
+      const textData = await response.text();
+      
+      const jsonText = textData.substring(
+        textData.indexOf('{'),
+        textData.lastIndexOf('}') + 1
+      );
+      
+      const parsedData = JSON.parse(jsonText);
+      
+      if (parsedData && parsedData.table) {
+        const receivingRecords = parsedData.table.rows.map((row, index) => {
+          // Get all cell values, defaulting to empty string if null
+          const cells = row.c.map(cell => {
+            if (cell && cell.v !== null) {
+              if (cell.f && typeof cell.v === 'object' && cell.v.toString() === '[object Object]') {
+                return cell.f;
+              }
+              return cell.v;
             }
-            return cell.v;
-          }
-          return "";
+            return "";
+          });
+  
+          return {
+            id: `receiving-${index}`,
+            timestamp: cells[0] || "",     // Column A - Timestamp
+            heatNumber: cells[1] || "",    // Column B - Heat Number
+            time: cells[2] || "",          // Column C - Time
+            receivingQtyMt: cells[3] || "", // Column D - Receiving Qty (MT)
+            ledel: cells[4] || "",         // Column E - Ledel
+            ccmTotalPieces: cells[5] || 0, // Column F - CCM Total Pieces
+            bpMillTo: cells[6] || 0,       // Column G - BP Mill TO
+            bpCcmTo: cells[7] || 0,        // Column H - BP CCM TO
+            millToPcs: cells[8] || 0,      // Column I - Mill TO Pieces
+            remark: cells[9] || "",        // Column J - Remark
+            // status: "completed"            // Default status
+          };
         });
-      });
-      
-      // Map the rows to our data model
-      const receivingRecords = rows.map((row, index) => ({
-        id: `receiving-${index}`,
-        timestamp: row[0] || "",     // Column A - Timestamp
-        heatNumber: row[1] || "",    // Column B - Heat Number
-        time: row[2] || "",          // Column C - Time
-        ledel: row[3] || "",         // Column D - Ledel
-        ccmTotalPieces: row[4] || 0, // Column E - CCM Total Pieces
-        bpMillTo: row[5] || 0,       // Column F - BP Mill TO
-        bpCcmTo: row[6] || 0,        // Column G - BP CCM TO
-        millToPcs: row[7] || 0,      // Column H - Mill TO Pieces
-        remark: row[8] || "",        // Column I - Remark
-        status: row[9] || "completed" // Column J - Status (default to "completed")
-      }));
-      
-      return receivingRecords;
-    } else {
-      console.error("Failed to parse data from RECEIVING sheet");
+        
+        return receivingRecords;
+      } else {
+        console.error("Failed to parse data from RECEIVING sheet");
+        toast({
+          title: "Error",
+          description: "Failed to parse data from RECEIVING sheet.",
+          variant: "destructive",
+        });
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching RECEIVING sheet data:", error);
       toast({
         title: "Error",
-        description: "Failed to parse data from RECEIVING sheet.",
+        description: `Failed to fetch RECEIVING data: ${error.message}`,
         variant: "destructive",
       });
       return [];
     }
-  } catch (error) {
-    console.error("Error fetching RECEIVING sheet data:", error);
-    toast({
-      title: "Error",
-      description: `Failed to fetch RECEIVING data: ${error.message}`,
-      variant: "destructive",
-    });
-    return [];
-  }
-};
+  };
 
   // Function to fetch Google Sheets data directly using gviz/tq endpoint
   const fetchSheetData = async () => {
@@ -441,7 +433,7 @@ const fetchReceivingSheetData = async () => {
         data.bpCcmTo,             // BP CCM TO
         data.millToPcs,           // Mill TO Pieces
         data.remark,              // Remark
-        "completed"               // Status
+        // "completed"               // Status
       ];
   
       const formData = new FormData();
@@ -980,7 +972,7 @@ const handleReject = async (record) => {
               <th className="px-4 py-2 font-medium">BP CCM TO</th>
               <th className="px-4 py-2 font-medium">Mill TO Pcs</th>
               <th className="px-4 py-2 font-medium">Remark</th>
-              <th className="px-4 py-2 font-medium">Status</th>
+              {/* <th className="px-4 py-2 font-medium">Status</th> */}
             </tr>
           </thead>
           <tbody>
@@ -996,11 +988,11 @@ const handleReject = async (record) => {
                 <td className="px-4 py-2">{record.bpCcmTo}</td>
                 <td className="px-4 py-2">{record.millToPcs}</td>
                 <td className="px-4 py-2">{record.remark}</td>
-                <td className="px-4 py-2">
+                {/* <td className="px-4 py-2">
                   <Badge variant={record.status === "completed" ? "success" : "danger"} className="capitalize">
                     {record.status}
                   </Badge>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>

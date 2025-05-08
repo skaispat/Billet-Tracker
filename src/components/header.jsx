@@ -305,7 +305,7 @@ export default function Header() {
         <div className="flex items-center">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <Factory className="h-6 w-6 text-cyan-600" />
-            <span className="font-bold hidden xs:inline-block text-white truncate max-w-[180px] sm:max-w-none">
+            <span className="font-bold text-white truncate max-w-[180px] sm:max-w-none">
               Billet Production System
             </span>
           </Link>

@@ -77,7 +77,7 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md shadow-lg border border-teal-200 rounded-lg overflow-hidden">
+    <div className="w-full max-w-md shadow-lg border border-teal-200 rounded-lg overflow-hidden bg-gray-900">
       <div className="space-y-1 bg-gradient-to-r from-teal-800 to-cyan-600 text-white p-6 rounded-t-lg">
         <div className="flex justify-center mb-2">
           <Factory className="h-12 w-12" />

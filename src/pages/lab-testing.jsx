@@ -352,7 +352,7 @@ export default function LabTestingPage() {
           status: row[6] || "pass",    // Column G - Status
           needTestingAgain: row[7] || "no", // Column H - Need Testing Again?
           remarks: row[8] || "",       // Column I - Remarks
-          completed: true              // Set to completed for history records
+          // completed: true              // Set to completed for history records
         }));
         
         return labTestingRecords;
@@ -466,7 +466,7 @@ const fetchSheetData = async () => {
         data.status,              // Status
         data.needTestingAgain,    // Need Testing Again?
         data.remarks,             // Remarks
-        "completed"               // Completed status
+        // "completed"               // Completed status
       ];
 
       // Use your existing Apps Script to insert the data
