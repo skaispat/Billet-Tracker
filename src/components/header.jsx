@@ -193,7 +193,7 @@ const ModeToggle = () => {
     <div className="relative">
       <button
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        className="p-2 rounded-md hover:bg-gray-700"
+        className="p-2 rounded-md hover:bg-gray-700 transition-colors"
       >
         {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         <span className="sr-only">Toggle theme</span>
@@ -206,6 +206,18 @@ const ModeToggle = () => {
 const DropdownMenu = ({ children, trigger }) => {
   const [isOpen, setIsOpen] = useState(false)
 
+  useEffect(() => {
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.dropdown-menu')) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen])
+
   const handleClick = () => {
     setIsOpen(!isOpen)
   }
@@ -215,7 +227,7 @@ const DropdownMenu = ({ children, trigger }) => {
       <div onClick={handleClick}>{trigger}</div>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 z-50 animate-fadeIn">
           <div className="py-1">{children}</div>
         </div>
       )}
@@ -262,10 +274,15 @@ export default function Header() {
     // Short delay to ensure auth context is fully loaded
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 3000000)
+    }, 30000) // Changed from 3000000 to a more reasonable 300ms
 
     return () => clearTimeout(timer)
   }, [])
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname])
 
   const isActive = (path) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`)
@@ -282,19 +299,21 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-gray-900 bg-opacity-95 backdrop-blur">
-      <div className="container mx-auto flex h-14 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b bg-gray-900 bg-opacity-95 backdrop-blur supports-backdrop-blur:bg-background/60">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         {/* Logo and Brand Name */}
         <div className="flex items-center">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <Factory className="h-6 w-6 text-cyan-600" />
-            <span className="font-bold sm:inline-block text-white">Billet Production System</span>
+            <span className="font-bold hidden xs:inline-block text-white truncate max-w-[180px] sm:max-w-none">
+              Billet Production System
+            </span>
           </Link>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="md:flex items-center justify-center flex-1">
-          <div className="flex items-center justify-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center justify-center flex-1 px-4">
+          <div className="flex items-center justify-center space-x-1 lg:space-x-6 text-sm font-medium">
             {navigation.map((item) => {
               // Show the item if we're still loading OR the user has permission
               if (!checkPermission(item.permission)) {
@@ -306,13 +325,15 @@ export default function Header() {
                   key={item.name}
                   to={item.href}
                   className={cn(
-                    "transition-colors hover:text-gray-300",
-                    isActive(item.href) ? "text-white font-semibold" : "text-gray-400",
+                    "transition-colors hover:text-gray-300 px-3 py-2 rounded-md",
+                    isActive(item.href) 
+                      ? "text-white font-semibold bg-gray-800 bg-opacity-50" 
+                      : "text-gray-400 hover:bg-gray-800 hover:bg-opacity-30",
                   )}
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     {item.icon}
-                    <span>{item.name}</span>
+                    <span className="whitespace-nowrap">{item.name}</span>
                   </div>
                 </Link>
               )
@@ -321,32 +342,34 @@ export default function Header() {
         </nav>
 
         {/* Right Side User Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:gap-3">
           <ModeToggle />
 
           {/* Mobile Menu Button */}
           <button
-            className="p-2 rounded-md text-gray-400 hover:text-gray-300 md:hidden"
+            className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-800 md:hidden transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle mobile menu"
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
           </button>
 
           <DropdownMenu
             trigger={
-              <button className="relative h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
+              <button className="relative h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center hover:bg-gray-600 transition-colors">
                 <User className="h-4 w-4" />
+                <span className="sr-only">User menu</span>
               </button>
             }
           >
             <div className="px-4 py-3 text-sm">
-              <p className="font-medium text-white">{user?.name}</p>
-              <p className="text-gray-400 text-xs">{user?.username}</p>
+              <p className="font-medium text-white">{user?.name || "User"}</p>
+              <p className="text-gray-400 text-xs">{user?.username || "username"}</p>
             </div>
             <hr className="my-1 border-gray-700" />
             <button
               onClick={() => logout()}
-              className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
+              className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
@@ -355,36 +378,43 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-gray-900 border-b border-gray-700">
-          <div className="px-4 py-3 space-y-1">
-            {navigation.map((item) => {
-              // Use the same permission check for mobile menu
-              if (!checkPermission(item.permission)) {
-                return null
-              }
+      {/* Mobile Navigation Menu - Animated slide down */}
+      <div
+        className={cn(
+          "md:hidden bg-gray-900 border-b border-gray-700 overflow-hidden transition-all duration-300 ease-in-out",
+          mobileMenuOpen 
+            ? "max-h-[500px] opacity-100" 
+            : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="px-4 py-2 space-y-1">
+          {navigation.map((item) => {
+            // Use the same permission check for mobile menu
+            if (!checkPermission(item.permission)) {
+              return null
+            }
 
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center py-2 px-3 rounded-md transition-colors",
-                    isActive(item.href) ? "bg-gray-800 text-white font-medium" : "text-gray-300 hover:bg-gray-800",
-                  )}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <div className="flex items-center gap-3">
-                    {item.icon}
-                    <span>{item.name}</span>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  "flex items-center py-3 px-4 rounded-md transition-colors",
+                  isActive(item.href) 
+                    ? "bg-gray-800 text-white font-medium" 
+                    : "text-gray-300 hover:bg-gray-800 hover:bg-opacity-70",
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  <span>{item.name}</span>
+                </div>
+              </Link>
+            )
+          })}
         </div>
-      )}
+      </div>
     </header>
   )
 }
