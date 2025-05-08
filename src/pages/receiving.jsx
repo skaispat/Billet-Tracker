@@ -422,8 +422,16 @@ export default function ReceivingPage() {
   // This function submits data to the RECEIVING sheet without the billetId
   const submitToReceivingSheet = async (data) => {
     try {
+
+      const date = new Date();
+const day = String(date.getDate()).padStart(2, '0');
+const month = String(date.getMonth() + 1).padStart(2, '0'); // January is 0
+const year = date.getFullYear();
+const timestamp = `${day}/${month}/${year}`;
+
       const rowData = [
-        new Date().toISOString(), // Timestamp
+        // new Date().toISOString(), // Timestamp
+        timestamp,
         data.heatNumber,          // Heat Number
         data.time,                // Time
         data.receivingQtyMt,      // Receiving Qty (MT) - Make sure this is in the correct position

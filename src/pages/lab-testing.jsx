@@ -456,8 +456,15 @@ const fetchSheetData = async () => {
     try {
       // Prepare the data for the LAB TESTING sheet
       // Format the data according to your sheet structure
+
+      const date = new Date();
+const day = String(date.getDate()).padStart(2, '0');
+const month = String(date.getMonth() + 1).padStart(2, '0'); // January is 0
+const year = date.getFullYear();
+const timestamp = `${day}/${month}/${year}`;
       const rowData = [
-        new Date().toISOString(), // Timestamp - always first column
+        // new Date().toISOString(), // Timestamp - always first column
+        timestamp,
         data.heatNumber,          // Heat Number
         data.carbon,              // Carbon %
         data.sulfur,              // Sulfur %
