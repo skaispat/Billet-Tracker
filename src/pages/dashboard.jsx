@@ -292,8 +292,8 @@ const graphData = sheetData.productionData.map((record, index) => {
       <div className="container mx-auto py-6 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-cyan-700 dark:text-cyan-400">Production Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Monitor and analyze your production records</p>
+            <h1 className="text-3xl font-bold text-cyan-500">Production Dashboard</h1>
+            <p className="text-gray-400 mt-1">Monitor and analyze your production records</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {/* <div className="flex items-center space-x-2 mr-2">
@@ -314,7 +314,7 @@ const graphData = sheetData.productionData.map((record, index) => {
             </div> */}
             <button
               onClick={handleRefresh}
-              className="px-4 py-2 border border-cyan-200 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-800 dark:text-cyan-400 dark:hover:bg-cyan-900/30 rounded-md flex items-center"
+              className="px-4 py-2 border border-cyan-200 text-cyan-600 hover:bg-cyan-50 rounded-md flex items-center"
               disabled={refreshing}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
@@ -324,9 +324,9 @@ const graphData = sheetData.productionData.map((record, index) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-red-200 dark:border-red-800 overflow-hidden">
-            <div className="p-4 border-b border-red-100 dark:border-red-800">
-              <h3 className="text-lg text-red-700 dark:text-red-400 flex items-center font-medium">
+          <div className="bg-gray-800 rounded-lg shadow-md border border-red-200 overflow-hidden">
+            <div className="p-4 border-b border-red-400">
+              <h3 className="text-lg text-red-400 flex items-center font-medium">
                 <Recycle className="mr-2 h-5 w-5" />
                 Total Scrap
               </h3>
@@ -334,11 +334,11 @@ const graphData = sheetData.productionData.map((record, index) => {
             <div className="p-4">
               {isLoading ? (
                 // <Skeleton className="h-8 w-16" />
-                <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="h-8 w-16 bg-gray-800 rounded animate-pulse"></div>
               ) : (
                 <>
                   <div className="text-3xl font-bold">{totalScrap.toFixed(2)} MT</div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  <p className="text-gray-400 text-sm">
                     {totalProduction > 0 ? ((totalScrap / totalProduction) * 100).toFixed(1) : 0}% of production
                   </p>
                 </>
@@ -346,9 +346,9 @@ const graphData = sheetData.productionData.map((record, index) => {
             </div>
           </div>
           {/* Total Production Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-cyan-200 dark:border-cyan-800 overflow-hidden">
-            <div className="p-4 border-b border-cyan-100 dark:border-cyan-800">
-              <h3 className="text-lg text-cyan-700 dark:text-cyan-400 flex items-center font-medium">
+          <div className="bg-gray-800 rounded-lg shadow-md border border-cyan-600 overflow-hidden">
+            <div className="p-4 border-b border-cyan-100">
+              <h3 className="text-lg text-cyan-400 flex items-center font-medium">
                 <BarChart3 className="mr-2 h-5 w-5" />
                 Total Production
               </h3>
@@ -356,11 +356,11 @@ const graphData = sheetData.productionData.map((record, index) => {
             <div className="p-4">
               {isLoading ? (
                 // <Skeleton className="h-8 w-16" />
-                <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="h-8 w-16 bg-gray-800 rounded animate-pulse"></div>
               ) : (
                 <>
                   <div className="text-3xl font-bold">{totalProduction.toFixed(2)} MT</div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  <p className="text-gray-400 text-sm">
                     {sheetData.productionData.length} records
                   </p>
                 </>
@@ -371,9 +371,9 @@ const graphData = sheetData.productionData.map((record, index) => {
           {/* Total Scrap Card */}
 
           {/* Total Receiving Qty Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-teal-200 dark:border-teal-800 overflow-hidden">
-            <div className="p-4 border-b border-teal-100 dark:border-teal-800">
-              <h3 className="text-lg text-teal-700 dark:text-teal-400 flex items-center font-medium">
+          <div className="bg-gray-800 rounded-lg shadow-md border border-teal-800 overflow-hidden">
+            <div className="p-4 border-b border-teal-100">
+              <h3 className="text-lg text-teal-500 flex items-center font-medium">
                 <Package className="mr-2 h-5 w-5" />
                 Total Receiving Qty
               </h3>
@@ -394,9 +394,9 @@ const graphData = sheetData.productionData.map((record, index) => {
           </div>
 
           {/* Avg Production Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-amber-200 dark:border-amber-800 overflow-hidden">
-            <div className="p-4 border-b border-amber-100 dark:border-amber-800">
-              <h3 className="text-lg text-amber-700 dark:text-amber-400 flex items-center font-medium">
+          <div className="bg-gray-800 rounded-lg shadow-md border border-amber-800 overflow-hidden">
+            <div className="p-4 border-b border-amber-800">
+              <h3 className="text-lg text-amber-400 flex items-center font-medium">
                 <Calculator className="mr-2 h-5 w-5" />
                 Avg Production
               </h3>
@@ -404,11 +404,11 @@ const graphData = sheetData.productionData.map((record, index) => {
             <div className="p-4">
               {isLoading ? (
                 // <Skeleton className="h-8 w-16" />
-                <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="h-8 w-16 bg-gray-700 rounded animate-pulse"></div>
               ) : (
                 <>
                   <div className="text-3xl font-bold">{avgProduction.toFixed(2)} MT</div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Per production record</p>
+                  <p className="text-gray-400 text-sm">Per production record</p>
                 </>
               )}
             </div>
@@ -416,9 +416,9 @@ const graphData = sheetData.productionData.map((record, index) => {
         </div>
 
         {/* Pending Tasks - update to use sheetData */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-teal-200 dark:border-teal-800 overflow-hidden mb-6">
-          <div className="p-4 border-b border-teal-100 dark:border-teal-800">
-            <h3 className="text-lg text-teal-700 dark:text-teal-400 flex items-center font-medium">
+        <div className="bg-gray-800 rounded-lg shadow-md border border-teal-800 overflow-hidden mb-6">
+          <div className="p-4 border-b border-teal-800">
+            <h3 className="text-lg text-teal-400 flex items-center font-medium">
               <Clock className="mr-2 h-5 w-5" />
               Pending Tasks
             </h3>
@@ -426,13 +426,13 @@ const graphData = sheetData.productionData.map((record, index) => {
           <div className="p-4">
             {isLoading ? (
               // <Skeleton className="h-8 w-24" />
-              <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-8 w-24 bg-gray-700 rounded animate-pulse"></div>
             ) : (
               <>
                 <div className="text-3xl font-bold">
                   {pendingProductionCount + pendingReceivingCount + pendingLabTestingCount}
                 </div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Total pending tasks</p>
+                <p className="text-gray-400 text-sm">Total pending tasks</p>
                 <div className="mt-2 space-y-1">
                   <div className="flex justify-between items-center">
                     {/* <span className="text-sm">Production:</span>
@@ -463,16 +463,16 @@ const graphData = sheetData.productionData.map((record, index) => {
 
         {/* Scrap to Production Conversion Graph - using sheetData */}
         {/* Scrap to Production Conversion Graph - using sheetData */}
-<div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-cyan-200 dark:border-cyan-800 overflow-hidden">
-  <div className="p-4 border-b border-cyan-100 dark:border-cyan-800">
-    <h3 className="text-lg text-cyan-700 dark:text-cyan-400 flex items-center font-medium">
+<div className="bg-gray-800 rounded-lg shadow-md border border-cyan-800 overflow-hidden">
+  <div className="p-4 border-b border-cyan-800">
+    <h3 className="text-lg text-cyan-400 flex items-center font-medium">
       <BarChart3 className="mr-2 h-5 w-5" />
       Scrap to Production Conversion
     </h3>
   </div>
   <div className="p-4">
     {isLoading ? (
-      <div className="h-80 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      <div className="h-80 w-full bg-gray-700 rounded animate-pulse"></div>
     ) : (
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
