@@ -86,7 +86,7 @@ export default function LoginForm() {
         <p className="text-center text-teal-100">Enter your credentials to access the system</p>
       </div>
       <form onSubmit={handleSubmit}>
-        <div className="space-y-4 p-6 text-white">
+        <div className="space-y-4 p-6 text-black">
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium">
               Username
