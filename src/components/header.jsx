@@ -274,8 +274,8 @@ export default function Header() {
     // Short delay to ensure auth context is fully loaded
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 30000) // Changed from 3000000 to a more reasonable 300ms
-
+    }, 300) // Just 300 milliseconds (0.3 seconds)
+    
     return () => clearTimeout(timer)
   }, [])
 
@@ -316,9 +316,9 @@ export default function Header() {
           <div className="flex items-center justify-center space-x-1 lg:space-x-6 text-sm font-medium">
             {navigation.map((item) => {
               // Show the item if we're still loading OR the user has permission
-              if (!checkPermission(item.permission)) {
-                return null
-              }
+              // if (!checkPermission(item.permission)) {
+              //   return null
+              // }
 
               return (
                 <Link

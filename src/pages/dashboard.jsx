@@ -430,7 +430,7 @@ const graphData = sheetData.productionData.map((record, index) => {
             ) : (
               <>
                 <div className="text-3xl font-bold">
-                  {pendingProductionCount + pendingReceivingCount + pendingLabTestingCount}
+                  {pendingProductionCount + pendingLabTestingCount}
                 </div>
                 <p className="text-gray-400 text-sm">Total pending tasks</p>
                 <div className="mt-2 space-y-1">

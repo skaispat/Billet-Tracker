@@ -421,13 +421,13 @@ const fetchSheetData = async () => {
       const mappedRecords = pendingRows.map((row, index) => ({
         id: `prod-${index}`,
         heatNumber: row[1] || "", // Column B
-        drCell: row[2] || "", // Column C
-        pilot: row[3] || "", // Column D
-        metCook: row[4] || "", // Column E
-        silicoMn: row[5] || "", // Column F
-        authoriseCook: row[6] || "", // Column G
-        scrapCmd: row[7] || "", // Column H
-        productionCmd: row[8] || "", // Column I
+        drCell: row[23] || "", // Column C
+        pilot: row[24] || "", // Column D
+        metCook: row[25] || "", // Column E
+        silicoMn: row[26] || "", // Column F
+        authoriseCook: row[27] || "", // Column G
+        scrapCmd: row[28] || "", // Column H
+        productionCmd: row[29] || "", // Column I
         billetId: row[9] || "", // Column J (this is the Billet ID)
         status: "pending"
       }));
@@ -873,15 +873,19 @@ const handleRefresh = async () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left border-b border-gray-200">
-                        <th className="px-4 py-2 font-medium">Billet ID</th>
-                        <th className="px-4 py-2 font-medium">Heat Number</th>
-                        <th className="px-4 py-2 font-medium">DR Cell</th>
-                        <th className="px-4 py-2 font-medium">Pilot</th>
-                        <th className="px-4 py-2 font-medium">Met Cook</th>
-                        <th className="px-4 py-2 font-medium">Status</th>
-                        <th className="px-4 py-2 font-medium">Actions</th>
-                      </tr>
+                    <tr className="text-left border-b border-gray-200">
+          <th className="px-4 py-2 font-medium">Timestamp</th>
+          <th className="px-4 py-2 font-medium">Heat Number</th>
+          <th className="px-4 py-2 font-medium">Carbon %</th>
+          <th className="px-4 py-2 font-medium">Sulfur %</th>
+          <th className="px-4 py-2 font-medium">Magnesium %</th>
+          <th className="px-4 py-2 font-medium">Phosphorus %</th>
+          <th className="px-4 py-2 font-medium">Status</th>
+          <th className="px-4 py-2 font-medium">Need Testing Again?</th>
+          <th className="px-4 py-2 font-medium">Remarks</th>
+          <th className="px-4 py-2 font-medium">Status</th>
+          <th className="px-4 py-2 font-medium">Actions</th>
+        </tr>
                     </thead>
                     <tbody>
                       {pendingProductionRecords.map((record) => (
@@ -895,6 +899,14 @@ const handleRefresh = async () => {
                           <td className="px-4 py-2">{record.drCell || "N/A"}</td>
                           <td className="px-4 py-2">{record.pilot || "N/A"}</td>
                           <td className="px-4 py-2">{record.metCook || "N/A"}</td>
+                          <td className="px-4 py-2">{record.silicoMn || "N/A"}</td>
+                          <td className="px-4 py-2">{record.authoriseCook || "N/A"}</td>
+                          <td className="px-4 py-2">{record.scrapCmd || "N/A"}</td>
+                          <td className="px-4 py-2">{record.productionCmd || "N/A"}</td>
+
+
+
+                          
                           <td className="px-4 py-2">
                             <Badge variant="warning">Pending</Badge>
                           </td>
