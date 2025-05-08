@@ -280,7 +280,7 @@ const timestamp = `${day}/${month}/${year}`;
                   value={formData.drCell}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                  placeholder="Enter DR cell"
+                  placeholder="Enter DRclo"
                   required
                 />
               </div>
@@ -295,7 +295,7 @@ const timestamp = `${day}/${month}/${year}`;
                     value={formData.pilot}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                    placeholder="Enter pilot name"
+                    placeholder="Enter pellet"
                     required
                   />
                 </div>
@@ -309,7 +309,7 @@ const timestamp = `${day}/${month}/${year}`;
                     value={formData.metCook}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                    placeholder="Enter met cook name"
+                    placeholder="Enter met coke"
                     required
                   />
                 </div>
@@ -325,7 +325,7 @@ const timestamp = `${day}/${month}/${year}`;
                     value={formData.silicoMn}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                    placeholder="Enter silico mn"
+                    placeholder="Enter silicon mn"
                     required
                   />
                 </div>
@@ -339,7 +339,7 @@ const timestamp = `${day}/${month}/${year}`;
                     value={formData.authoriseCook}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                    placeholder="Enter authorise cook name"
+                    placeholder="Enter anthracite coal"
                     required
                   />
                 </div>
@@ -358,7 +358,7 @@ const timestamp = `${day}/${month}/${year}`;
                     value={formData.scrapCmd}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                    placeholder="Enter scrap cmd"
+                    placeholder="Enter scrap mt"
                     required
                   />
                 </div>
@@ -375,7 +375,7 @@ const timestamp = `${day}/${month}/${year}`;
                     value={formData.productionCmd}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-900"
-                    placeholder="Enter production cmd"
+                    placeholder="Enter production mt"
                     required
                   />
                 </div>

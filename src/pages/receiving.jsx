@@ -931,7 +931,7 @@ const handleReject = async (record) => {
                       >
                         Process
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleComplete(record)}
                         className="p-1 text-green-600 hover:text-green-800"
                         title="Mark as Completed"
@@ -944,7 +944,7 @@ const handleReject = async (record) => {
                         title="Reject"
                       >
                         <XCircle className="h-4 w-4" />
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>
