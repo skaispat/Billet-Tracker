@@ -270,14 +270,14 @@ export default function Header() {
   const [isLoading, setIsLoading] = useState(true)
 
   // Add useEffect to handle loading state
-  useEffect(() => {
-    // Short delay to ensure auth context is fully loaded
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 300) // Just 300 milliseconds (0.3 seconds)
-    
-    return () => clearTimeout(timer)
-  }, [])
+  // useEffect(() => {
+  //   // Short delay to ensure auth context is fully loaded
+  //   const timer = setTimeout(() => {
+  //     setIsLoading(false)
+  //   }, 100000000000000) // Changed from 3000000 to a more reasonable 300ms
+
+  //   return () => clearTimeout(timer)
+  // }, [])
 
   // Close mobile menu when route changes
   useEffect(() => {
