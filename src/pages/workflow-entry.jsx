@@ -54,7 +54,7 @@ export default function WorkflowEntryPage() {
   })
 
   // Google Apps Script URL
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwC2k1f5A143OSGeZBa4nb5AyfOX38V5boR2v6U2Ezd-VrResg4xVp6Moizd0U0GWJ-/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyxWc0X9zgyqgtfHfIlTplxFHEq2pe5IV46Ng0iJtzXvPlotLdQCyce92qd7iflmEuZTQ/exec";
   
   // Only render after first mount to prevent hydration mismatch
   useEffect(() => {

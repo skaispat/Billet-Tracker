@@ -11,8 +11,8 @@ import { RefreshCw, BarChart3, Recycle, Package, Calculator, Clock } from "lucid
 // import { Badge } from "../components/ui/badge" // Adjust path as needed
 // import { Skeleton } from "../components/ui/skeleton" // Adjust path as needed
 // Google Sheet ID and Apps Script URL
-const SHEET_ID = "1CGfnqtgWTWBNRgX2RvwRrPqR8rTKUae6moVDfWMH88I";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwC2k1f5A143OSGeZBa4nb5AyfOX38V5boR2v6U2Ezd-VrResg4xVp6Moizd0U0GWJ-/exec";
+const SHEET_ID = "1Bu9dVCYBMwCBRwwtdxcNjOGVCtF6gIet_W82dwCq1B4";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyxWc0X9zgyqgtfHfIlTplxFHEq2pe5IV46Ng0iJtzXvPlotLdQCyce92qd7iflmEuZTQ/exec";
 
 export default function DashboardPage() {
   const {
