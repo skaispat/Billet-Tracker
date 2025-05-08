@@ -5,8 +5,76 @@ import { useNavigate } from "react-router-dom"
 import { useBilletData } from "../lib/billet-context.jsx"
 import { useAuth } from "../lib/auth-context.jsx"
 import Header from "../components/header.jsx"
-import { cn, formatDate } from "../lib/utils.jsx"
+import { cn } from "../lib/utils.jsx"
 import { useToast } from "../components/ui/toaster.jsx"
+
+// Date formatting utility functions
+const formatDateDDMMYYYY = (dateValue) => {
+  // Handle various date formats that might come from Google Sheets
+  let date;
+  
+  // Handle Date object or ISO string
+  if (dateValue instanceof Date) {
+    date = dateValue;
+  } 
+  // Handle string date values
+  else if (typeof dateValue === 'string') {
+    // Check if it's in Google Sheets Date(year,month,day) format
+    if (dateValue.startsWith('Date(')) {
+      const dateParts = dateValue.replace('Date(', '').replace(')', '').split(',');
+      // Note: months are 0-based in JavaScript Date
+      date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]), parseInt(dateParts[2]));
+    } else {
+      // Try to parse as ISO string or other date format
+      date = new Date(dateValue);
+    }
+  } 
+  // If we can't parse it or it's invalid, return the original
+  else {
+    return dateValue;
+  }
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return dateValue;
+  }
+  
+  // Format as dd/mm/yyyy
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+};
+
+// Format time as h:mm AM/PM
+const formatTimeAMPM = (timeValue) => {
+  // Handle Google Sheets Date format for time (Date(1899,11,30,15,24,0))
+  if (typeof timeValue === 'string' && timeValue.startsWith('Date(')) {
+    const timeParts = timeValue.replace('Date(', '').replace(')', '').split(',');
+    // Extract hours, minutes from the parts (ignore the date part)
+    const hours = parseInt(timeParts[3]);
+    const minutes = parseInt(timeParts[4]);
+    
+    // Format as 12-hour time with AM/PM
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+    
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
+  
+  // If it's just a normal time string (like "15:24"), convert it to 12-hour format
+  if (typeof timeValue === 'string' && timeValue.includes(':')) {
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
+  
+  // If we couldn't parse it, return the original
+  return timeValue;
+};
 
 // Icons
 const Layers = ({ className }) => (
@@ -121,6 +189,27 @@ const X = ({ className }) => (
   </svg>
 )
 
+// Flask icon for lab testing
+const Flask = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M9 3h6v2H9z"></path>
+    <path d="M5 8h14"></path>
+    <path d="M19 8v13H5V8l7-3 7 3Z"></path>
+    <path d="M8 14h8"></path>
+  </svg>
+)
+
 // Badge component
 const Badge = ({ children, variant = "default", className }) => {
   const variantClasses = {
@@ -156,7 +245,6 @@ const Dialog = ({ isOpen, onClose, title, children, className = "" }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        {/* <div className="fixed inset-0 bg-gray-700 bg-opacity-100 transition-opacity" onClick={onClose}></div> */}
         <div className="fixed inset-0 backdrop-blur-md bg-opacity-30 transition-opacity" onClick={onClose}></div>
         <div className={`relative transform overflow-hidden rounded-lg bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg ${className}`}>
           <div className="bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
@@ -180,10 +268,18 @@ export default function LabTestingPage() {
   const { hasPermission, isLoading: authLoading } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const [labTestingSheetRecords, setLabTestingSheetRecords] = useState([]);
+
+  // Google Sheet ID and Apps Script URL
+  const SHEET_ID = "1CGfnqtgWTWBNRgX2RvwRrPqR8rTKUae6moVDfWMH88I";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwC2k1f5A143OSGeZBa4nb5AyfOX38V5boR2v6U2Ezd-VrResg4xVp6Moizd0U0GWJ-/exec";
 
   const [pendingRecords, setPendingRecords] = useState([])
   const [historyRecords, setHistoryRecords] = useState([])
+  const [pendingProductionRecords, setPendingProductionRecords] = useState([])
+  const [selectedRecord, setSelectedRecord] = useState(null) // Store the selected record
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false) // New state for tracking submission
   const [refreshing, setRefreshing] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -191,15 +287,14 @@ export default function LabTestingPage() {
   const [activeTab, setActiveTab] = useState("pending")
   const [formData, setFormData] = useState({
     billetId: "",
-    testDate: "",
-    testerName: "",
-    tensileStrength: "",
-    yieldStrength: "",
-    elongation: "",
-    hardness: "",
-    chemicalComposition: "",
-    testResult: "pass",
-    remark: "",
+    heatNumber: "",
+    carbon: "",
+    sulfur: "",
+    magnesium: "",
+    phosphorus: "",
+    status: "pass",
+    needTestingAgain: "no",
+    remarks: "",
   })
 
   // Only render after first mount to prevent hydration mismatch
@@ -207,145 +302,477 @@ export default function LabTestingPage() {
     setIsMounted(true)
   }, [])
 
-  useEffect(() => {
-    // Safely get records after component is mounted
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        await refreshData()
-        setPendingRecords(getPendingLabTestRecords())
-        setHistoryRecords(getHistoryLabTestRecords())
-        setIsLoading(false)
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        setIsLoading(false)
+  // Add this function to fetch LAB TESTING sheet data directly
+  const fetchLabTestingSheetData = async () => {
+    try {
+      console.log("Fetching data from LAB TESTING sheet...");
+      
+      // Use the direct Google Sheets URL format
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=LAB%20TESTING`;
+      
+      const response = await fetch(sheetUrl);
+      const textData = await response.text();
+      
+      // Parse the response
+      const jsonText = textData.substring(
+        textData.indexOf('{'),
+        textData.lastIndexOf('}') + 1
+      );
+      
+      const parsedData = JSON.parse(jsonText);
+      
+      if (parsedData && parsedData.table) {
+        // Get the column headers from the first row
+        const headers = parsedData.table.cols.map(col => col.label);
+        
+        // Convert the table data to rows
+        const rows = parsedData.table.rows.map(row => {
+          return row.c.map(cell => {
+            // Properly handle Google Sheets date format
+            if (cell && cell.v !== null) {
+              // If it's a Google Sheets date cell
+              if (cell.f && typeof cell.v === 'object' && cell.v.toString() === '[object Object]') {
+                return cell.f; // Use the formatted value which is often "Date(...)"
+              }
+              return cell.v;
+            }
+            return "";
+          });
+        });
+        
+        // Map the rows to our data model
+        const labTestingRecords = rows.map((row, index) => ({
+          id: `labtest-${index}`,
+          timestamp: row[0] || "",     // Column A - Timestamp
+          heatNumber: row[1] || "",    // Column B - Heat Number
+          carbon: row[2] || "",        // Column C - Carbon %
+          sulfur: row[3] || "",        // Column D - Sulfur %
+          magnesium: row[4] || "",     // Column E - Magnesium %
+          phosphorus: row[5] || "",    // Column F - Phosphorus %
+          status: row[6] || "pass",    // Column G - Status
+          needTestingAgain: row[7] || "no", // Column H - Need Testing Again?
+          remarks: row[8] || "",       // Column I - Remarks
+          completed: true              // Set to completed for history records
+        }));
+        
+        return labTestingRecords;
+      } else {
+        console.error("Failed to parse data from LAB TESTING sheet");
+        toast({
+          title: "Error",
+          description: "Failed to parse data from LAB TESTING sheet.",
+          variant: "destructive",
+        });
+        return [];
       }
+    } catch (error) {
+      console.error("Error fetching LAB TESTING sheet data:", error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch LAB TESTING data: ${error.message}`,
+        variant: "destructive",
+      });
+      return [];
     }
+  };
 
-    if (isMounted && !authLoading) {
-      fetchData()
+  // Function to fetch Google Sheets data directly using gviz/tq endpoint
+  // Replace your existing fetchSheetData function with this updated version
+const fetchSheetData = async () => {
+  try {
+    console.log("Fetching data from Google Sheet...");
+    
+    // Use the direct Google Sheets URL format
+    const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=PRODUCTION`;
+    
+    const response = await fetch(sheetUrl);
+    const textData = await response.text();
+    
+    // The gviz response comes with some prefix we need to remove
+    const jsonText = textData.substring(
+      textData.indexOf('{'),
+      textData.lastIndexOf('}') + 1
+    );
+    
+    const parsedData = JSON.parse(jsonText);
+    
+    if (parsedData && parsedData.table) {
+      // Convert the table data to rows
+      const rows = parsedData.table.rows.map(row => {
+        return row.c.map(cell => cell ? (cell.v !== null ? cell.v : "") : "");
+      });
+      
+      // Process the data to find rows where:
+      // Column S (index 18) is not null AND Column T (index 19) is null
+      const pendingRows = rows.filter(row => {
+        // Make sure we have enough columns
+        if (row.length < 20) return false;
+        
+        // Check if S is not empty and T is empty
+        const columnS = row[20] ? row[20].toString().trim() : "";
+        const columnT = row[21] ? row[21].toString().trim() : "";
+        
+        return columnS !== "" && columnT === "";
+      });
+      
+      console.log("Found pending lab test records:", pendingRows.length);
+      
+      // Map the filtered rows to our data model
+      const mappedRecords = pendingRows.map((row, index) => ({
+        id: `prod-${index}`,
+        heatNumber: row[1] || "", // Column B
+        drCell: row[2] || "", // Column C
+        pilot: row[3] || "", // Column D
+        metCook: row[4] || "", // Column E
+        silicoMn: row[5] || "", // Column F
+        authoriseCook: row[6] || "", // Column G
+        scrapCmd: row[7] || "", // Column H
+        productionCmd: row[8] || "", // Column I
+        billetId: row[9] || "", // Column J (this is the Billet ID)
+        status: "pending"
+      }));
+      
+      setPendingProductionRecords(mappedRecords);
+    } else {
+      console.error("Failed to parse data from Google Sheet");
+      toast({
+        title: "Error",
+        description: "Failed to parse production data from Google Sheet.",
+        variant: "destructive",
+      });
     }
-  }, [isMounted, authLoading, getPendingLabTestRecords, getHistoryLabTestRecords, refreshData])
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await refreshData()
-    setPendingRecords(getPendingLabTestRecords())
-    setHistoryRecords(getHistoryLabTestRecords())
-    setTimeout(() => {
-      setRefreshing(false)
-    }, 500)
+  } catch (error) {
+    console.error("Error fetching Google Sheet data:", error);
+    toast({
+      title: "Error",
+      description: `Failed to fetch data: ${error.message}`,
+      variant: "destructive",
+    });
   }
+};
+
+  // Function to submit data to the LAB TESTING sheet
+  const submitToLabTestingSheet = async (data) => {
+    try {
+      // Prepare the data for the LAB TESTING sheet
+      // Format the data according to your sheet structure
+      const rowData = [
+        new Date().toISOString(), // Timestamp - always first column
+        data.heatNumber,          // Heat Number
+        data.carbon,              // Carbon %
+        data.sulfur,              // Sulfur %
+        data.magnesium,           // Magnesium %
+        data.phosphorus,          // Phosphorus %
+        data.status,              // Status
+        data.needTestingAgain,    // Need Testing Again?
+        data.remarks,             // Remarks
+        "completed"               // Completed status
+      ];
+
+      // Use your existing Apps Script to insert the data
+      const formData = new FormData();
+      formData.append('sheetName', 'LAB TESTING');
+      formData.append('action', 'insert');
+      formData.append('rowData', JSON.stringify(rowData));
+
+      // Send the data to Google Apps Script
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Also update the PRODUCTION sheet to mark this row as lab-tested
+        await updateProductionLabStatus(data.billetId);
+        return { success: true };
+      } else {
+        throw new Error(result.error || 'Failed to submit data to LAB TESTING sheet');
+      }
+    } catch (error) {
+      console.error('Error submitting to LAB TESTING sheet:', error);
+      throw error;
+    }
+  };
+
+  // Function to update the lab testing status in the PRODUCTION sheet
+  // Function to update the lab testing status in the PRODUCTION sheet
+const updateProductionLabStatus = async (billetId) => {
+  try {
+    // First create a FormData object for the API call
+    const formData = new FormData();
+    formData.append('sheetName', 'PRODUCTION');
+    formData.append('action', 'markLabTested'); // This action should be implemented in your Apps Script
+    formData.append('billetId', billetId); // The billet ID to find the row
+    formData.append('columnIndex', 19); // Column T (index 19) for lab test status
+    formData.append('value', new Date().toISOString()); // Current timestamp
+    
+    // Send the request to update the status
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to mark production record as lab tested');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating production lab status:', error);
+    toast({
+      title: "Error",
+      description: `Failed to update lab test status: ${error.message}`,
+      variant: "destructive",
+    });
+    return false;
+  }
+};
+
+useEffect(() => {
+  // Safely get records after component is mounted
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch local records - just use refreshData, don't call getPendingLabTestRecords
+      await refreshData();
+      
+      // Fetch from sheet directly
+      const labTestingData = await fetchLabTestingSheetData();
+      setLabTestingSheetRecords(labTestingData);
+      
+      // Fetch Google Sheet production records
+      await fetchSheetData();
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setIsLoading(false);
+    }
+  };
+
+  if (isMounted && !authLoading) {
+    fetchData();
+  }
+}, [isMounted, authLoading, refreshData]);
+  
+  // Update the handleRefresh function
+  // Update the handleRefresh function
+// Update the handleRefresh function
+const handleRefresh = async () => {
+  setRefreshing(true);
+  try {
+    await refreshData();
+    
+    // Fetch from sheet directly
+    const labTestingData = await fetchLabTestingSheetData();
+    setLabTestingSheetRecords(labTestingData);
+    
+    await fetchSheetData();
+  } catch (error) {
+    console.error("Error refreshing data:", error);
+    toast({
+      title: "Error",
+      description: `Failed to refresh data: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500);
+  }
+};
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const openDialog = (billetId) => {
-    setSelectedBilletId(billetId)
+    // Find the selected record from pendingProductionRecords
+    const record = pendingProductionRecords.find(r => r.billetId === billetId);
+    
+    setSelectedRecord(record);
+    setSelectedBilletId(billetId);
+    
+    // Initialize form with heat number
     setFormData({
       billetId: billetId,
-      testDate: "",
-      testerName: "",
-      tensileStrength: "",
-      yieldStrength: "",
-      elongation: "",
-      hardness: "",
-      chemicalComposition: "",
-      testResult: "pass",
-      remark: "",
-    })
-    setIsDialogOpen(true)
-  }
+      heatNumber: record ? record.heatNumber : "",
+      carbon: "",
+      sulfur: "",
+      magnesium: "",
+      phosphorus: "",
+      status: "pass",
+      needTestingAgain: "no",
+      remarks: "",
+    });
+    
+    setIsDialogOpen(true);
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true); // Set submitting state to true when form is submitted
 
     // Validate form
     if (
-      !formData.testDate ||
-      !formData.testerName ||
-      !formData.tensileStrength ||
-      !formData.yieldStrength ||
-      !formData.elongation ||
-      !formData.hardness
+      !formData.carbon ||
+      !formData.sulfur ||
+      !formData.magnesium ||
+      !formData.phosphorus
     ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
         variant: "destructive",
-      })
-      return
+      });
+      setIsSubmitting(false); // Reset submitting state
+      return;
     }
 
-    // Create new record
+    // Create new record with the structure we want
     const newRecord = {
-      ...formData,
-      tensileStrength: Number.parseFloat(formData.tensileStrength),
-      yieldStrength: Number.parseFloat(formData.yieldStrength),
-      elongation: Number.parseFloat(formData.elongation),
-      hardness: Number.parseFloat(formData.hardness),
+      billetId: selectedBilletId,
+      heatNumber: selectedRecord?.heatNumber || "",
+      carbon: formData.carbon,
+      sulfur: formData.sulfur,
+      magnesium: formData.magnesium,
+      phosphorus: formData.phosphorus,
+      status: formData.status,
+      needTestingAgain: formData.needTestingAgain,
+      remarks: formData.remarks,
+    };
+
+    try {
+      // Submit to LAB TESTING sheet
+      const result = await submitToLabTestingSheet(newRecord);
+      
+      if (result.success) {
+        // Add to local state
+        addLabTestRecord({
+          ...newRecord,
+          status: formData.status,
+          timestamp: new Date().toISOString()
+        });
+
+        // Show success toast
+        toast({
+          title: "Success",
+          description: "Lab test record created successfully.",
+        });
+
+        // Reset form and close dialog
+        setFormData({
+          billetId: "",
+          heatNumber: "",
+          carbon: "",
+          sulfur: "",
+          magnesium: "",
+          phosphorus: "",
+          status: "pass",
+          needTestingAgain: "no",
+          remarks: "",
+        });
+        setIsDialogOpen(false);
+
+        // Refresh data
+        setPendingRecords(getPendingLabTestRecords());
+        setHistoryRecords(getHistoryLabTestRecords());
+        await fetchSheetData();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to submit data: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false); // Reset submitting state regardless of result
     }
+  };
 
-    addLabTestRecord(newRecord)
+  const handleComplete = async (record) => {
+    try {
+      // Submit minimal data to LAB TESTING sheet
+      const result = await submitToLabTestingSheet({
+        billetId: record.billetId, // Needed for production status update
+        heatNumber: record.heatNumber,
+        carbon: "Auto-completed",
+        sulfur: "Auto-completed",
+        magnesium: "Auto-completed",
+        phosphorus: "Auto-completed",
+        status: "pass",
+        needTestingAgain: "no",
+        remarks: "Automatically marked as completed"
+      });
+      
+      if (result.success) {
+        updateLabTestRecord(record.id, { status: "completed" });
+        setPendingRecords(getPendingLabTestRecords());
+        setHistoryRecords(getHistoryLabTestRecords());
+        await fetchSheetData();
 
-    // Show success toast
-    toast({
-      title: "Success",
-      description: "Lab test record created successfully.",
-    })
+        toast({
+          title: "Success",
+          description: "Lab test record marked as completed.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to complete record: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
 
-    // Reset form and close dialog
-    setFormData({
-      billetId: "",
-      testDate: "",
-      testerName: "",
-      tensileStrength: "",
-      yieldStrength: "",
-      elongation: "",
-      hardness: "",
-      chemicalComposition: "",
-      testResult: "pass",
-      remark: "",
-    })
-    setIsDialogOpen(false)
+  const handleReject = async (record) => {
+    try {
+      // Submit minimal data to LAB TESTING sheet with rejected status
+      const result = await submitToLabTestingSheet({
+        billetId: record.billetId, // Needed for production status update
+        heatNumber: record.heatNumber,
+        carbon: "Rejected",
+        sulfur: "Rejected",
+        magnesium: "Rejected",
+        phosphorus: "Rejected",
+        status: "fail",
+        needTestingAgain: "yes",
+        remarks: "Rejected by user"
+      });
+      
+      if (result.success) {
+        updateLabTestRecord(record.id, { status: "rejected" });
+        setPendingRecords(getPendingLabTestRecords());
+        setHistoryRecords(getHistoryLabTestRecords());
+        await fetchSheetData();
 
-    // Refresh data
-    setPendingRecords(getPendingLabTestRecords())
-    setHistoryRecords(getHistoryLabTestRecords())
-  }
-
-  const handleComplete = (id) => {
-    updateLabTestRecord(id, { status: "completed" })
-    setPendingRecords(getPendingLabTestRecords())
-    setHistoryRecords(getHistoryLabTestRecords())
-
-    toast({
-      title: "Success",
-      description: "Lab test record marked as completed.",
-    })
-  }
-
-  const handleReject = (id) => {
-    updateLabTestRecord(id, { status: "rejected" })
-    setPendingRecords(getPendingLabTestRecords())
-    setHistoryRecords(getHistoryLabTestRecords())
-
-    toast({
-      title: "Record Rejected",
-      description: "Lab test record has been rejected.",
-      variant: "destructive",
-    })
-  }
+        toast({
+          title: "Record Rejected",
+          description: "Lab test record has been rejected.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to reject record: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
 
   // If not mounted yet or auth is loading, show a skeleton
   if (!isMounted || authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-teal-100">
+      <div className="min-h-screen bg-gradient-to-b from-gray-800 to-gray-900">
         <Header />
         <div className="container mx-auto py-6 px-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -366,31 +793,10 @@ export default function LabTestingPage() {
   }
 
   // Check if user has permission to access this page
-  if (!hasPermission("labTesting")) {
-    navigate("/dashboard")
-    return null
-  }
-
-  // Flask icon for lab testing
-  const Flask = ({ className }) => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M9 3h6v2H9z"></path>
-      <path d="M5 8h14"></path>
-      <path d="M19 8v13H5V8l7-3 7 3Z"></path>
-      <path d="M8 14h8"></path>
-    </svg>
-  )
+  // if (!hasPermission("labTesting")) {
+  //   navigate("/dashboard")
+  //   return null
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950">
@@ -451,10 +857,10 @@ export default function LabTestingPage() {
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : activeTab === "pending" ? (
-              pendingRecords.length === 0 ? (
+              pendingProductionRecords.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>No pending lab test records found.</p>
-                  <p className="mt-2">Complete billet receiving first to see records here.</p>
+                  <p className="mt-2">Complete billet production first to see records here.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -463,20 +869,25 @@ export default function LabTestingPage() {
                       <tr className="text-left border-b border-gray-200">
                         <th className="px-4 py-2 font-medium">Billet ID</th>
                         <th className="px-4 py-2 font-medium">Heat Number</th>
-                        <th className="px-4 py-2 font-medium">Grade</th>
+                        <th className="px-4 py-2 font-medium">DR Cell</th>
+                        <th className="px-4 py-2 font-medium">Pilot</th>
+                        <th className="px-4 py-2 font-medium">Met Cook</th>
                         <th className="px-4 py-2 font-medium">Status</th>
                         <th className="px-4 py-2 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {pendingRecords.map((record) => (
+                      {pendingProductionRecords.map((record) => (
                         <tr
                           key={record.id}
-                          className="border-b border-gray-100 hover:bg-gray-800"
+                          className="border-b border-gray-600 hover:bg-gray-800"
                         >
-                          <td className="px-4 py-2 font-mono text-xs">{record.billetId}</td>
+                          <td className="px-4 py-2 font-mono text-xs">                    {formatDateDDMMYYYY(record.billetId)}
+</td>
                           <td className="px-4 py-2">{record.heatNumber || "N/A"}</td>
-                          <td className="px-4 py-2">{record.grade || "N/A"}</td>
+                          <td className="px-4 py-2">{record.drCell || "N/A"}</td>
+                          <td className="px-4 py-2">{record.pilot || "N/A"}</td>
+                          <td className="px-4 py-2">{record.metCook || "N/A"}</td>
                           <td className="px-4 py-2">
                             <Badge variant="warning">Pending</Badge>
                           </td>
@@ -488,24 +899,20 @@ export default function LabTestingPage() {
                               >
                                 Test
                               </button>
-                              {record.status === "pending" && !record.id.startsWith("pending-") && (
-                                <>
-                                  <button
-                                    onClick={() => handleComplete(record.id)}
-                                    className="p-1 text-green-600 hover:text-green-800"
-                                    title="Mark as Completed"
-                                  >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleReject(record.id)}
-                                    className="p-1 text-red-600 hover:text-red-800"
-                                    title="Reject"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                onClick={() => handleComplete(record)}
+                                className="p-1 text-green-600 hover:text-green-800"
+                                title="Mark as Completed"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(record)}
+                                className="p-1 text-red-600 hover:text-red-800"
+                                title="Reject"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -514,51 +921,55 @@ export default function LabTestingPage() {
                   </table>
                 </div>
               )
-            ) : historyRecords.length === 0 ? (
+            ) : labTestingSheetRecords.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <p>No lab test history records found.</p>
+                <p>No lab testing history records found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left border-b border-gray-200">
-                      <th className="px-4 py-2 font-medium">Billet ID</th>
-                      <th className="px-4 py-2 font-medium">Test Date</th>
-                      <th className="px-4 py-2 font-medium">Tester</th>
-                      <th className="px-4 py-2 font-medium">Tensile Str.</th>
-                      <th className="px-4 py-2 font-medium">Yield Str.</th>
-                      <th className="px-4 py-2 font-medium">Result</th>
+                      <th className="px-4 py-2 font-medium">Timestamp</th>
+                      <th className="px-4 py-2 font-medium">Heat Number</th>
+                      <th className="px-4 py-2 font-medium">Carbon %</th>
+                      <th className="px-4 py-2 font-medium">Sulfur %</th>
+                      <th className="px-4 py-2 font-medium">Magnesium %</th>
+                      <th className="px-4 py-2 font-medium">Phosphorus %</th>
                       <th className="px-4 py-2 font-medium">Status</th>
+                      <th className="px-4 py-2 font-medium">Need Testing Again?</th>
+                      <th className="px-4 py-2 font-medium">Remarks</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {historyRecords.map((record) => (
+                    {labTestingSheetRecords.map((record) => (
                       <tr
                         key={record.id}
-                        className="border-b border-gray-100 hover:bg-gray-800"
+                        className="border-b border-gray-600 hover:bg-gray-800"
                       >
-                        <td className="px-4 py-2 font-mono text-xs">{record.billetId}</td>
-                        <td className="px-4 py-2">{record.testDate}</td>
-                        <td className="px-4 py-2">{record.testerName}</td>
-                        <td className="px-4 py-2">{record.tensileStrength} MPa</td>
-                        <td className="px-4 py-2">{record.yieldStrength} MPa</td>
+                        <td className="px-4 py-2">{formatDateDDMMYYYY(record.timestamp)}</td>
+                        <td className="px-4 py-2">{record.heatNumber || "N/A"}</td>
+                        <td className="px-4 py-2">{record.carbon}</td>
+                        <td className="px-4 py-2">{record.sulfur}</td>
+                        <td className="px-4 py-2">{record.magnesium}</td>
+                        <td className="px-4 py-2">{record.phosphorus}</td>
                         <td className="px-4 py-2">
                           <Badge 
-                            variant={record.testResult === "pass" ? "success" : "danger"} 
-                            className="capitalize"
-                          >
-                            {record.testResult}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2">
-                          <Badge 
-                            variant={record.status === "completed" ? "success" : "danger"} 
+                            variant={record.status === "pass" ? "success" : "danger"} 
                             className="capitalize"
                           >
                             {record.status}
                           </Badge>
                         </td>
+                        <td className="px-4 py-2">
+                          <Badge 
+                            variant={record.needTestingAgain === "yes" ? "warning" : "info"}
+                            className="capitalize"
+                          >
+                            {record.needTestingAgain}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-2">{record.remarks}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -570,179 +981,167 @@ export default function LabTestingPage() {
       </div>
 
       {/* Lab Testing Dialog */}
-      <Dialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} title="Perform Lab Testing">
+      <Dialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} title="Perform Lab Testing" className="bg-gray-800 rounded-lg shadow-xl">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="billetId" className="block text-sm font-medium mb-1">
-              Billet ID
-            </label>
-            <input
-              id="billetId"
-              name="billetId"
-              value={formData.billetId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              readOnly
-              disabled
-            />
+          {/* Display Heat Number as header info */}
+          <div className="bg-gray-700 p-3 rounded-md mb-4">
+            <div>
+              <p className="text-gray-300 text-sm">Heat Number:</p>
+              <p className="text-white font-medium">{selectedRecord?.heatNumber || "N/A"}</p>
+            </div>
           </div>
+          
+          <input
+            type="hidden"
+            id="billetId"
+            name="billetId"
+            value={formData.billetId}
+          />
+          <input
+            type="hidden"
+            id="heatNumber"
+            name="heatNumber"
+            value={formData.heatNumber}
+          />
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="testDate" className="block text-sm font-medium mb-1">
-                Test Date *
+              <label htmlFor="carbon" className="block text-sm font-medium mb-1 text-gray-200">
+                Carbon % *
               </label>
               <input
-                id="testDate"
-                name="testDate"
-                type="date"
-                value={formData.testDate}
+                id="carbon"
+                name="carbon"
+                type="text"
+                value={formData.carbon}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter carbon percentage"
                 required
               />
             </div>
             <div>
-              <label htmlFor="testerName" className="block text-sm font-medium mb-1">
-                Tester Name *
+              <label htmlFor="sulfur" className="block text-sm font-medium mb-1 text-gray-200">
+                Sulfur % *
               </label>
               <input
-                id="testerName"
-                name="testerName"
-                value={formData.testerName}
+                id="sulfur"
+                name="sulfur"
+                type="text"
+                value={formData.sulfur}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter tester name"
+                className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter sulfur percentage"
                 required
               />
             </div>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="tensileStrength" className="block text-sm font-medium mb-1">
-                Tensile Strength (MPa) *
+              <label htmlFor="magnesium" className="block text-sm font-medium mb-1 text-gray-200">
+                Magnesium % *
               </label>
               <input
-                id="tensileStrength"
-                name="tensileStrength"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.tensileStrength}
+                id="magnesium"
+                name="magnesium"
+                type="text"
+                value={formData.magnesium}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter tensile strength"
+                className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter magnesium percentage"
                 required
               />
             </div>
             <div>
-              <label htmlFor="yieldStrength" className="block text-sm font-medium mb-1">
-                Yield Strength (MPa) *
+              <label htmlFor="phosphorus" className="block text-sm font-medium mb-1 text-gray-200">
+                Phosphorus % *
               </label>
               <input
-                id="yieldStrength"
-                name="yieldStrength"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.yieldStrength}
+                id="phosphorus"
+                name="phosphorus"
+                type="text"
+                value={formData.phosphorus}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter yield strength"
+                className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Enter phosphorus percentage"
                 required
               />
             </div>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="elongation" className="block text-sm font-medium mb-1">
-                Elongation (%) *
+              <label htmlFor="status" className="block text-sm font-medium mb-1 text-gray-200">
+                Status *
               </label>
-              <input
-                id="elongation"
-                name="elongation"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.elongation}
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter elongation percentage"
+                className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
-              />
+              >
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+              </select>
             </div>
             <div>
-              <label htmlFor="hardness" className="block text-sm font-medium mb-1">
-                Hardness (HBW) *
+              <label htmlFor="needTestingAgain" className="block text-sm font-medium mb-1 text-gray-200">
+                Need Testing Again? *
               </label>
-              <input
-                id="hardness"
-                name="hardness"
-                type="number"
-                min="0"
-                value={formData.hardness}
+              <select
+                id="needTestingAgain"
+                name="needTestingAgain"
+                value={formData.needTestingAgain}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                placeholder="Enter hardness value"
+                className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
-              />
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
             </div>
           </div>
+          
           <div>
-            <label htmlFor="chemicalComposition" className="block text-sm font-medium mb-1">
-              Chemical Composition
-            </label>
-            <textarea
-              id="chemicalComposition"
-              name="chemicalComposition"
-              value={formData.chemicalComposition}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              placeholder="Enter chemical composition details (e.g., C: 0.42%, Mn: 0.7%, Si: 0.3%)"
-              rows={2}
-            />
-          </div>
-          <div>
-            <label htmlFor="testResult" className="block text-sm font-medium mb-1">
-              Test Result *
-            </label>
-            <select
-              id="testResult"
-              name="testResult"
-              value={formData.testResult}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              required
-            >
-              <option value="pass">Pass</option>
-              <option value="fail">Fail</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="remark" className="block text-sm font-medium mb-1">
+            <label htmlFor="remarks" className="block text-sm font-medium mb-1 text-gray-200">
               Remarks
             </label>
             <textarea
-              id="remark"
-              name="remark"
-              value={formData.remark}
+              id="remarks"
+              name="remarks"
+              value={formData.remarks}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              placeholder="Enter additional remarks or observations (optional)"
+              className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Enter any remarks or observations (optional)"
               rows={3}
             />
           </div>
-          <div className="flex justify-end space-x-2 pt-4">
+          
+          <div className="flex justify-end space-x-2 pt-4 border-t border-gray-700 mt-6">
             <button
               type="button"
               onClick={() => setIsDialogOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-500 text-gray-200 rounded-md hover:bg-gray-700"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button 
               type="submit" 
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md"
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md flex items-center"
+              disabled={isSubmitting}
             >
-              Submit Test Results
+              {isSubmitting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Test Results'
+              )}
             </button>
           </div>
         </form>

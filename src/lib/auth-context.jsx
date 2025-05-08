@@ -2,53 +2,17 @@
 
 import { createContext, useContext, useState, useEffect } from "react"
 
-// Define user roles and their permissions
-const rolePermissions = {
-  admin: ["dashboard", "production", "receiving", "labTesting", "tmtPlanning"],
-  supervisor: ["dashboard", "production", "receiving", "labTesting", "tmtPlanning"],
-  operator: ["production", "receiving", "labTesting", "tmtPlanning"],
-  viewer: ["dashboard"],
-}
-
+// Remove initial users as we'll now fetch from Google Sheet
 const AuthContext = createContext(undefined)
-
-// Initial users with default permissions based on role
-const initialUsers = [
-  {
-    id: "1",
-    username: "admin",
-    password: "admin123",
-    role: "admin",
-    name: "Administrator",
-    permissions: {
-      dashboard: true,
-      production: true,
-      receiving: true,
-      labTesting: true,
-      tmtPlanning: true,
-    },
-  },
-  {
-    id: "2",
-    username: "operator",
-    password: "op123",
-    role: "operator",
-    name: "Default Operator",
-    permissions: {
-      dashboard: true,
-      production: true,
-      receiving: true,
-      labTesting: false,
-      tmtPlanning: false,
-    },
-  },
-]
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
-  const [users, setUsers] = useState(initialUsers)
   const [isLoading, setIsLoading] = useState(true)
+
+  // Google Sheet details for login
+  const SHEET_ID = "1CGfnqtgWTWBNRgX2RvwRrPqR8rTKUae6moVDfWMH88I";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwC2k1f5A143OSGeZBa4nb5AyfOX38V5boR2v6U2Ezd-VrResg4xVp6Moizd0U0GWJ-/exec";
 
   // Check for existing session on mount
   useEffect(() => {
@@ -76,24 +40,73 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     setIsLoading(true)
 
-    // Add a small delay to simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    try {
+      // Fetch login data from Google Sheet
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Login`;
+      
+      const response = await fetch(sheetUrl);
+      const textData = await response.text();
+      
+      // Parse the response
+      const jsonText = textData.substring(
+        textData.indexOf('{'),
+        textData.lastIndexOf('}') + 1
+      );
+      
+      const parsedData = JSON.parse(jsonText);
+      
+      if (parsedData && parsedData.table) {
+        // Get the column headers from the first row
+        const headers = parsedData.table.cols.map(col => col.label);
+        
+        // Convert the table data to rows
+        const rows = parsedData.table.rows.map(row => {
+          return row.c.map(cell => {
+            return cell && cell.v !== null ? cell.v : "";
+          });
+        });
+        
+        // Find the matching user
+        const foundUser = rows.find(row => 
+          row[0] && row[0].toLowerCase() === username.toLowerCase() && 
+          row[1] === password
+        );
+        
+        if (foundUser) {
+          // Construct user object
+          const userObject = {
+            username: foundUser[0],
+            role: foundUser[2] || "viewer", // Default to viewer if no role specified
+            name: foundUser[0], // Use username as name if no specific name column
+            permissions: {
+              dashboard: true,
+              production: foundUser[2] !== "viewer",
+              receiving: foundUser[2] !== "viewer",
+              labTesting: foundUser[2] === "admin" || foundUser[2] === "supervisor",
+              tmtPlanning: foundUser[2] === "admin" || foundUser[2] === "supervisor",
+            }
+          };
 
-    // In a real app, this would be an API call
-    const foundUser = users.find((u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password)
+          setUser(userObject)
+          setIsAuthenticated(true)
+          
+          // Store user in localStorage (without any sensitive info)
+          const { permissions, ...userToStore } = userObject
+          localStorage.setItem("user", JSON.stringify(userToStore))
+          
+          setIsLoading(false)
+          return true
+        }
+      }
 
-    if (foundUser) {
-      setUser(foundUser)
-      setIsAuthenticated(true)
-      // Store user in localStorage (except password)
-      const { password: _, ...userWithoutPassword } = foundUser
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
+      // If no user found
       setIsLoading(false)
-      return true
+      return false
+    } catch (error) {
+      console.error("Login error:", error)
+      setIsLoading(false)
+      return false
     }
-
-    setIsLoading(false)
-    return false
   }
 
   const logout = async () => {
@@ -116,80 +129,17 @@ export function AuthProvider({ children }) {
     return user.permissions[permission] || false
   }
 
-  // Create default permissions based on role
-  const getDefaultPermissions = (role) => {
-    return {
-      dashboard: role !== "viewer" ? true : true, // Everyone gets dashboard
-      production: role !== "viewer",
-      receiving: role !== "viewer",
-      labTesting: role === "admin" || role === "supervisor",
-      tmtPlanning: role === "admin" || role === "supervisor",
-    }
+  // Placeholder functions for potential future use
+  const addUser = () => {
+    console.warn("Adding users directly is not supported. Manage users in the Google Sheet.")
   }
 
-  const addUser = (newUser) => {
-    const id = (users.length + 1).toString()
-
-    // If permissions aren't provided, use default based on role
-    const permissions = newUser.permissions || getDefaultPermissions(newUser.role)
-
-    setUsers([...users, { ...newUser, id, permissions }])
+  const updateUser = () => {
+    console.warn("Updating users directly is not supported. Manage users in the Google Sheet.")
   }
 
-  const updateUser = (id, updates) => {
-    // If role is updated but permissions aren't, update permissions based on new role
-    let updatedPermissions = updates.permissions
-    if (updates.role && !updates.permissions) {
-      const currentUser = users.find((u) => u.id === id)
-      if (currentUser && currentUser.role !== updates.role) {
-        updatedPermissions = getDefaultPermissions(updates.role)
-      }
-    }
-
-    const updatedUsers = users.map((user) =>
-      user.id === id
-        ? {
-            ...user,
-            ...updates,
-            permissions: updatedPermissions || user.permissions,
-          }
-        : user,
-    )
-
-    setUsers(updatedUsers)
-
-    // If the updated user is the current user, update the current user state
-    if (user && user.id === id) {
-      setUser({
-        ...user,
-        ...updates,
-        permissions: updatedPermissions || user.permissions,
-      })
-
-      // Update localStorage
-      const { password: _, ...userWithoutPassword } = {
-        ...user,
-        ...updates,
-        permissions: updatedPermissions || user.permissions,
-      }
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
-    }
-  }
-
-  const deleteUser = (id) => {
-    // Prevent deleting the last admin
-    const remainingAdmins = users.filter((u) => u.role === "admin" && u.id !== id).length
-    if (users.find((u) => u.id === id)?.role === "admin" && remainingAdmins === 0) {
-      alert("Cannot delete the last admin user")
-      return
-    }
-
-    setUsers(users.filter((user) => user.id !== id))
-
-    // If the deleted user is the current user, log out
-    if (user && user.id === id) {
-      logout()
-    }
+  const deleteUser = () => {
+    console.warn("Deleting users directly is not supported. Manage users in the Google Sheet.")
   }
 
   return (
@@ -200,7 +150,6 @@ export function AuthProvider({ children }) {
         login,
         logout,
         hasPermission,
-        users,
         addUser,
         updateUser,
         deleteUser,

@@ -51,14 +51,14 @@ function App() {
           }
         />
 
-        <Route
-          path="/workflow/entry"
-          element={
-            <ProtectedRoute>
-              <WorkflowEntryPage />
-            </ProtectedRoute>
-          }
-        />
+<Route
+  path="/workflow/entry"
+  element={
+    <ProtectedRoute requiredPermission="production">
+      <WorkflowEntryPage />
+    </ProtectedRoute>
+  }
+/>
 
         <Route
           path="/workflow/receiving"

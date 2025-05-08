@@ -86,28 +86,6 @@ const LayoutDashboard = ({ className }) => (
   </svg>
 )
 
-const ClipboardList = ({ className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-    <path d="M12 11h4"></path>
-    <path d="M12 16h4"></path>
-    <path d="M8 11h.01"></path>
-    <path d="M8 16h.01"></path>
-  </svg>
-)
-
 const User = ({ className }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -215,7 +193,7 @@ const ModeToggle = () => {
     <div className="relative">
       <button
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="p-2 rounded-md hover:bg-gray-700"
       >
         {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         <span className="sr-only">Toggle theme</span>
@@ -228,23 +206,16 @@ const ModeToggle = () => {
 const DropdownMenu = ({ children, trigger }) => {
   const [isOpen, setIsOpen] = useState(false)
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isOpen && !event.target.closest(".dropdown-menu")) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener("click", handleClickOutside)
-    return () => document.removeEventListener("click", handleClickOutside)
-  }, [isOpen])
+  const handleClick = () => {
+    setIsOpen(!isOpen)
+  }
 
   return (
     <div className="relative dropdown-menu">
-      <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+      <div onClick={handleClick}>{trigger}</div>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
           <div className="py-1">{children}</div>
         </div>
       )}
@@ -252,134 +223,81 @@ const DropdownMenu = ({ children, trigger }) => {
   )
 }
 
-// Skeleton component
-const Skeleton = ({ className }) => {
-  return <div className={cn("animate-pulse bg-gray-200 dark:bg-gray-700 rounded", className)} />
-}
+// Define navigation links with their permission requirements outside the component
+const navigation = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    permission: "dashboard",
+    icon: <LayoutDashboard className="h-4 w-4" />,
+  },
+  {
+    name: "Billet Production",
+    href: "/workflow/entry",
+    permission: "production",
+    icon: <Factory className="h-4 w-4" />,
+  },
+  {
+    name: "Billet Receiving",
+    href: "/workflow/receiving",
+    permission: "receiving",
+    icon: <Layers className="h-4 w-4" />,
+  },
+  {
+    name: "Lab Testing",
+    href: "/workflow/lab-testing",
+    permission: "labTesting",
+    icon: <Flask className="h-4 w-4" />,
+  },
+]
 
 export default function Header() {
   const location = useLocation()
-  const { isAuthenticated, user, logout, hasPermission, isLoading } = useAuth()
-  const [isMounted, setIsMounted] = useState(false)
+  const { isAuthenticated, user, logout, hasPermission } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Only render after first mount to prevent hydration mismatch
+  // Add useEffect to handle loading state
   useEffect(() => {
-    setIsMounted(true)
+    // Short delay to ensure auth context is fully loaded
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 3000000)
+
+    return () => clearTimeout(timer)
   }, [])
 
   const isActive = (path) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`)
   }
 
-  // Define navigation links with their permission requirements
-  const navigation = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      permission: "dashboard",
-      icon: <LayoutDashboard className="h-4 w-4" />,
-    },
-    {
-      name: "Billet Production",
-      href: "/workflow/entry",
-      permission: "production",
-      icon: <Factory className="h-4 w-4" />,
-    },
-    {
-      name: "Billet Receiving",
-      href: "/workflow/receiving",
-      permission: "receiving",
-      icon: <Layers className="h-4 w-4" />,
-    },
-    {
-      name: "Lab Testing",
-      href: "/workflow/lab-testing",
-      permission: "labTesting",
-      icon: <Flask className="h-4 w-4" />,
-    },
-  ]
-
-  // If not mounted yet, render a skeleton to prevent layout shift
-  if (!isMounted) {
-    return (
-      <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-900 bg-opacity-95 dark:bg-opacity-95 backdrop-blur">
-        <div className="container mx-auto flex h-14 items-center px-4">
-          <div className="mr-4 hidden md:flex">
-            <div className="mr-6 flex items-center space-x-2">
-              <Skeleton className="h-6 w-6 rounded-full" />
-              <Skeleton className="h-4 w-40" />
-            </div>
-            <nav className="flex items-center space-x-6 text-sm font-medium">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-4 w-20" />
-              ))}
-            </nav>
-          </div>
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div className="w-full flex-1 md:w-auto md:flex-none"></div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <Skeleton className="h-8 w-8 rounded-full" />
-            </div>
-          </div>
-        </div>
-      </header>
-    )
-  }
-
-  // If loading auth state, show a loading skeleton
-  if (isLoading) {
-    return (
-      <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-900 bg-opacity-95 dark:bg-opacity-95 backdrop-blur">
-        <div className="container mx-auto flex h-14 items-center px-4">
-          <div className="mr-4 hidden md:flex">
-            <div className="mr-6 flex items-center space-x-2">
-              <Factory className="h-6 w-6 text-cyan-600/50" />
-              <span className="hidden font-bold sm:inline-block text-white">
-                Billet Production System
-              </span>
-            </div>
-            <nav className="flex items-center space-x-6 text-sm font-medium">
-              {navigation.map((item, i) => (
-                <Skeleton key={i} className="h-4 w-24" />
-              ))}
-            </nav>
-          </div>
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div className="w-full flex-1 md:w-auto md:flex-none"></div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <Skeleton className="h-8 w-8 rounded-full" />
-            </div>
-          </div>
-        </div>
-      </header>
-    )
-  }
-
-  // If not authenticated, don't render the header
-  if (!isAuthenticated) {
-    return null
+  // Helper function to check permissions safely
+  const checkPermission = (permission) => {
+    // If still loading or hasPermission is undefined, show all items
+    if (isLoading || typeof hasPermission !== "function") {
+      return true
+    }
+    // Otherwise, check the permission
+    return hasPermission(permission)
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-900 bg-opacity-95 dark:bg-opacity-95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b bg-gray-900 bg-opacity-95 backdrop-blur">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
         {/* Logo and Brand Name */}
         <div className="flex items-center">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <Factory className="h-6 w-6 text-cyan-600" />
-            <span className="hidden font-bold sm:inline-block text-white">Billet Production System</span>
+            <span className="font-bold sm:inline-block text-white">Billet Production System</span>
           </Link>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center justify-center flex-1">
+        <nav className="md:flex items-center justify-center flex-1">
           <div className="flex items-center justify-center space-x-6 text-sm font-medium">
             {navigation.map((item) => {
-              // Only show navigation items the user has permission to access
-              if (!hasPermission(item.permission)) {
+              // Show the item if we're still loading OR the user has permission
+              if (!checkPermission(item.permission)) {
                 return null
               }
 
@@ -388,10 +306,8 @@ export default function Header() {
                   key={item.name}
                   to={item.href}
                   className={cn(
-                    "transition-colors hover:text-gray-600 dark:hover:text-gray-300",
-                    isActive(item.href)
-                      ? "text-gray-900 dark:text-white font-semibold"
-                      : "text-gray-500 dark:text-gray-400",
+                    "transition-colors hover:text-gray-300",
+                    isActive(item.href) ? "text-white font-semibold" : "text-gray-400",
                   )}
                 >
                   <div className="flex items-center gap-1">
@@ -409,8 +325,8 @@ export default function Header() {
           <ModeToggle />
 
           {/* Mobile Menu Button */}
-          <button 
-            className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 md:hidden"
+          <button
+            className="p-2 rounded-md text-gray-400 hover:text-gray-300 md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <Menu className="h-6 w-6" />
@@ -418,19 +334,19 @@ export default function Header() {
 
           <DropdownMenu
             trigger={
-              <button className="relative h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <button className="relative h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
                 <User className="h-4 w-4" />
               </button>
             }
           >
             <div className="px-4 py-3 text-sm">
-              <p className="font-medium">{user?.name}</p>
-              <p className="text-gray-500 dark:text-gray-400 text-xs">{user?.username}</p>
+              <p className="font-medium text-white">{user?.name}</p>
+              <p className="text-gray-400 text-xs">{user?.username}</p>
             </div>
-            <hr className="my-1 border-gray-200 dark:border-gray-700" />
+            <hr className="my-1 border-gray-700" />
             <button
               onClick={() => logout()}
-              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
@@ -441,11 +357,11 @@ export default function Header() {
 
       {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="md:hidden bg-gray-900 border-b border-gray-700">
           <div className="px-4 py-3 space-y-1">
             {navigation.map((item) => {
-              // Only show navigation items the user has permission to access
-              if (!hasPermission(item.permission)) {
+              // Use the same permission check for mobile menu
+              if (!checkPermission(item.permission)) {
                 return null
               }
 
@@ -455,9 +371,7 @@ export default function Header() {
                   to={item.href}
                   className={cn(
                     "flex items-center py-2 px-3 rounded-md transition-colors",
-                    isActive(item.href)
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800",
+                    isActive(item.href) ? "bg-gray-800 text-white font-medium" : "text-gray-300 hover:bg-gray-800",
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >

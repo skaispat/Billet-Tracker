@@ -77,8 +77,8 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md shadow-lg border border-teal-200 dark:border-teal-800 rounded-lg overflow-hidden">
-      <div className="space-y-1 bg-gradient-to-r from-teal-600 to-cyan-600 text-white dark:from-teal-800 dark:to-cyan-800 p-6 rounded-t-lg">
+    <div className="w-full max-w-md shadow-lg border border-teal-200 rounded-lg overflow-hidden">
+      <div className="space-y-1 bg-gradient-to-r from-teal-800 to-cyan-600 text-white p-6 rounded-t-lg">
         <div className="flex justify-center mb-2">
           <Factory className="h-12 w-12" />
         </div>
@@ -86,14 +86,14 @@ export default function LoginForm() {
         <p className="text-center text-teal-100">Enter your credentials to access the system</p>
       </div>
       <form onSubmit={handleSubmit}>
-        <div className="space-y-4 p-6">
+        <div className="space-y-4 p-6 text-white">
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium">
               Username
             </label>
             <input
               id="username"
-              className="w-full px-3 py-2 border border-teal-200 dark:border-teal-800 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-teal-200 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -108,7 +108,7 @@ export default function LoginForm() {
             <input
               id="password"
               type="password"
-              className="w-full px-3 py-2 border border-teal-200 dark:border-teal-800 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-teal-200 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -125,20 +125,6 @@ export default function LoginForm() {
           >
             {isButtonDisabled ? "Logging in..." : "Login"}
           </button>
-
-          <div className="text-sm text-gray-500 dark:text-gray-400 text-center pt-2 border-t border-teal-100 dark:border-teal-800 w-full">
-            <p className="font-medium text-teal-700 dark:text-teal-400 mb-1">Test Accounts:</p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-teal-50 dark:bg-teal-900/20 p-2 rounded">
-                <p className="font-bold">Admin</p>
-                <p>admin / admin123</p>
-              </div>
-              <div className="bg-teal-50 dark:bg-teal-900/20 p-2 rounded">
-                <p className="font-bold">Operator</p>
-                <p>operator / op123</p>
-              </div>
-            </div>
-          </div>
         </div>
       </form>
     </div>
