@@ -421,14 +421,22 @@ const fetchSheetData = async () => {
       const mappedRecords = pendingRows.map((row, index) => ({
         id: `prod-${index}`,
         heatNumber: row[1] || "", // Column B
-        drCell: row[23] || "", // Column C
-        pilot: row[24] || "", // Column D
-        metCook: row[25] || "", // Column E
-        silicoMn: row[26] || "", // Column F
-        authoriseCook: row[27] || "", // Column G
-        scrapCmd: row[28] || "", // Column H
-        productionCmd: row[29] || "", // Column I
+        drCell: row[2] || "", // Column C
+        pilot: row[3] || "", // Column D
+        metCook: row[4] || "", // Column E
+        silicoMn: row[5] || "", // Column F
+        authoriseCook: row[6] || "", // Column G
+        scrapCmd: row[7] || "", // Column H
+        productionCmd: row[8] || "", // Column I
         billetId: row[9] || "", // Column J (this is the Billet ID)
+        time: row[12] || "", // Column M
+        receivingQtyMt: row[13] || "", // Column N
+        ledel: row[14] || "", // Column O
+        ccmTotalPieces: row[15] || "", // Column P
+        bpMillTo: row[16] || "", // Column Q
+        bpCcmTo: row[17] || "", // Column R
+        millToPcs: row[18] || "", // Column S
+        remark: row[19] || "", // Column T
         status: "pending"
       }));
       
@@ -537,6 +545,34 @@ const updateProductionLabStatus = async (billetId) => {
     });
     return false;
   }
+};
+
+const formatTimeAMPM = (timeValue) => {
+  // Handle Google Sheets Date format for time (Date(1899,11,30,15,24,0))
+  if (typeof timeValue === 'string' && timeValue.startsWith('Date(')) {
+    const timeParts = timeValue.replace('Date(', '').replace(')', '').split(',');
+    // Extract hours, minutes from the parts (ignore the date part)
+    const hours = parseInt(timeParts[3]);
+    const minutes = parseInt(timeParts[4]);
+    
+    // Format as 12-hour time with AM/PM
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+    
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
+  
+  // If it's just a normal time string (like "15:24"), convert it to 12-hour format
+  if (typeof timeValue === 'string' && timeValue.includes(':')) {
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
+  
+  // If we couldn't parse it, return the original
+  return timeValue;
 };
 
 useEffect(() => {
@@ -873,19 +909,26 @@ const handleRefresh = async () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                    <tr className="text-left border-b border-gray-200">
-          <th className="px-4 py-2 font-medium">Timestamp</th>
-          <th className="px-4 py-2 font-medium">Heat Number</th>
-          <th className="px-4 py-2 font-medium">Carbon %</th>
-          <th className="px-4 py-2 font-medium">Sulfur %</th>
-          <th className="px-4 py-2 font-medium">Magnesium %</th>
-          <th className="px-4 py-2 font-medium">Phosphorus %</th>
-          <th className="px-4 py-2 font-medium">Status</th>
-          <th className="px-4 py-2 font-medium">Need Testing Again?</th>
-          <th className="px-4 py-2 font-medium">Remarks</th>
-          <th className="px-4 py-2 font-medium">Status</th>
-          <th className="px-4 py-2 font-medium">Actions</th>
-        </tr>
+                      <tr className="text-left border-b border-gray-200">
+                        <th className="px-4 py-2 font-medium">Timestamp</th>
+                        <th className="px-4 py-2 font-medium">Heat Number</th>
+                        <th className="px-4 py-2 font-medium">DR Cell</th>
+                        <th className="px-4 py-2 font-medium">Pilot</th>
+                        <th className="px-4 py-2 font-medium">Met Cook</th>
+                        <th className="px-4 py-2 font-medium">Silicon MN</th>
+                        <th className="px-4 py-2 font-medium">Anthracite coal</th>
+                        <th className="px-4 py-2 font-medium">Time</th>
+                <th className="px-4 py-2 font-medium">Receiving Qty (MT)</th>
+                <th className="px-4 py-2 font-medium">LEDEL</th>
+                <th className="px-4 py-2 font-medium">CCM TOTAL PIECES</th>
+                <th className="px-4 py-2 font-medium">B.P. MILL TO</th>
+                <th className="px-4 py-2 font-medium">B.P. CCM TO</th>
+                <th className="px-4 py-2 font-medium">MILL TO. Pcs.</th>
+                <th className="px-4 py-2 font-medium">Remark</th>
+                <th className="px-4 py-2 font-medium">Status</th>
+                {/* Actions column with sticky positioning */}
+                <th className="px-4 py-2 font-medium sticky right-0 bg-gray-900 z-10 shadow-l">Actions</th>
+              </tr>
                     </thead>
                     <tbody>
                       {pendingProductionRecords.map((record) => (
@@ -901,39 +944,27 @@ const handleRefresh = async () => {
                           <td className="px-4 py-2">{record.metCook || "N/A"}</td>
                           <td className="px-4 py-2">{record.silicoMn || "N/A"}</td>
                           <td className="px-4 py-2">{record.authoriseCook || "N/A"}</td>
-                          <td className="px-4 py-2">{record.scrapCmd || "N/A"}</td>
-                          <td className="px-4 py-2">{record.productionCmd || "N/A"}</td>
-
-
-
-                          
+                          <td className="px-4 py-2">{formatTimeAMPM(record.time || "N/A")}</td>
+                  <td className="px-4 py-2">{record.receivingQtyMt || "N/A"}</td>
+                  <td className="px-4 py-2">{record.ledel || "N/A"}</td>
+                  <td className="px-4 py-2">{record.ccmTotalPieces || "N/A"}</td>
+                  <td className="px-4 py-2">{record.bpMillTo || "N/A"}</td>
+                  <td className="px-4 py-2">{record.bpCcmTo || "N/A"}</td>
+                  <td className="px-4 py-2">{record.millToPcs || "N/A"}</td>
+                  <td className="px-4 py-2">{record.remark || "N/A"}</td>
                           <td className="px-4 py-2">
                             <Badge variant="warning">Pending</Badge>
                           </td>
-                          <td className="px-4 py-2">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => openDialog(record.billetId)}
-                                className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs"
-                              >
-                                Test
-                              </button>
-                              {/* <button
-                                onClick={() => handleComplete(record)}
-                                className="p-1 text-green-600 hover:text-green-800"
-                                title="Mark as Completed"
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleReject(record)}
-                                className="p-1 text-red-600 hover:text-red-800"
-                                title="Reject"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </button> */}
-                            </div>
-                          </td>
+                          <td className="px-4 py-2 sticky right-0 bg-gray-900 z-10">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => openDialog(record.billetId)}
+                        className="px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs"
+                      >
+                        Process
+                      </button>
+                    </div>
+                  </td>
                         </tr>
                       ))}
                     </tbody>
