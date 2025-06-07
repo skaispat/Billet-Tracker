@@ -93,9 +93,67 @@ export default function WorkflowEntryPage() {
     }))
   }
 
+  // Function to get all Job Card numbers from the sheet
+  const getAllJobCardNumbers = async () => {
+    try {
+      const formData = new FormData()
+      formData.append("sheetName", "PRODUCTION")
+      formData.append("action", "getAllData")
+
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Extract Job Card numbers from column AJ (index 35)
+        const jobCardNumbers = result.data
+          .map(row => row[35]) // Column AJ is index 35
+          .filter(jobCard => jobCard && jobCard.startsWith('JC-'))
+          .map(jobCard => {
+            const match = jobCard.match(/JC-(\d+)/)
+            return match ? parseInt(match[1]) : 0
+          })
+          .filter(num => num > 0)
+        
+        return jobCardNumbers
+      } else {
+        return []
+      }
+    } catch (error) {
+      console.error("Error getting job card numbers:", error)
+      return []
+    }
+  }
+
+  // Function to get the next Job Card number
+  const getNextJobCardNumber = async () => {
+    try {
+      const existingJobCards = await getAllJobCardNumbers()
+      
+      if (existingJobCards.length === 0) {
+        return "JC-001"
+      }
+
+      // Find the highest number
+      const maxNumber = Math.max(...existingJobCards)
+      const nextNumber = maxNumber + 1
+      
+      // Format with leading zeros (3 digits)
+      return `JC-${String(nextNumber).padStart(3, '0')}`
+    } catch (error) {
+      console.error("Error getting next job card number:", error)
+      // Fallback to JC-001 in case of error
+      return "JC-001"
+    }
+  }
+
   const submitToGoogleSheet = async (data) => {
     try {
       const billetId = generateBilletId()
+      const jobCardNumber = await getNextJobCardNumber()
 
       const date = new Date()
       const day = String(date.getDate()).padStart(2, "0")
@@ -103,23 +161,27 @@ export default function WorkflowEntryPage() {
       const year = date.getFullYear()
       const timestamp = `${day}/${month}/${year}`
 
-      // Updated row data with all the new fields in the correct order
-      const rowData = [
-        timestamp, // Column A - Timestamp
-        data.heatNumber, // Column B - Heat Number
-        data.drCell, // Column C - Drclo
-        data.pilot, // Column D - Pellet
-        data.lumps, // Column E - Lumps
-        data.scrapCommon, // Column F - Scrap Common
-        data.scrapGrade, // Column G - Scrap Grade
-        data.pigIron, // Column H - Pig Iron
-        data.silicoMn, // Column I - Silico MN
-        data.fenoChrone, // Column J - Feno Chrone
-        data.aluminium, // Column K - Aluminium
-        data.authoriseCook, // Column L - Anthracite coal
-        data.metCook, // Column M - Met coke
-        data.productionCmd, // Column N - Production (MT)
-      ]
+      // Create row data array with 36 elements (A to AJ columns)
+      const rowData = new Array(36).fill("")
+      
+      // Fill the main data columns (A to N)
+      rowData[0] = timestamp // Column A - Timestamp
+      rowData[1] = data.heatNumber // Column B - Heat Number
+      rowData[2] = data.drCell // Column C - Drclo
+      rowData[3] = data.pilot // Column D - Pellet
+      rowData[4] = data.lumps // Column E - Lumps
+      rowData[5] = data.scrapCommon // Column F - Scrap Common
+      rowData[6] = data.scrapGrade // Column G - Scrap Grade
+      rowData[7] = data.pigIron // Column H - Pig Iron
+      rowData[8] = data.silicoMn // Column I - Silico MN
+      rowData[9] = data.fenoChrone // Column J - Feno Chrone
+      rowData[10] = data.aluminium // Column K - Aluminium
+      rowData[11] = data.authoriseCook // Column L - Anthracite coal
+      rowData[12] = data.metCook // Column M - Met coke
+      rowData[13] = data.productionCmd // Column N - Production (MT)
+      
+      // Add Job Card number to column AJ (index 35, since AJ is the 36th column)
+      rowData[35] = jobCardNumber // Column AJ - Job Card
 
       // Create form data for the POST request
       const formData = new FormData()
@@ -136,7 +198,7 @@ export default function WorkflowEntryPage() {
       const result = await response.json()
 
       if (result.success) {
-        return { success: true, billetId }
+        return { success: true, billetId, jobCardNumber }
       } else {
         throw new Error(result.error || "Failed to submit data to Google Sheet")
       }
@@ -180,19 +242,20 @@ export default function WorkflowEntryPage() {
       const result = await submitToGoogleSheet(formData)
 
       if (result.success) {
-        // Create new record for local state with the generated ID
+        // Create new record for local state with the generated ID and Job Card
         const newRecord = {
           ...formData,
+          jobCardNumber: result.jobCardNumber,
           timestamp: new Date().toISOString(), // Also store timestamp
         }
 
         // Add to local state
         addRecord(newRecord)
 
-        // Show success toast
+        // Show success toast with Job Card number
         toast({
           title: "Success",
-          description: `Billet production record created successfully with ID: ${result.billetId}`,
+          description: `Production record created successfully! Billet ID: ${result.billetId}, Job Card: ${result.jobCardNumber}`,
         })
 
         // Reset form
@@ -262,7 +325,7 @@ export default function WorkflowEntryPage() {
         <div className="bg-gray-950 text-white rounded-lg shadow-md border border-cyan-200 mb-6">
           <div className="p-4 border-b border-cyan-100">
             <h2 className="text-xl font-medium text-cyan-700">New Production Entry</h2>
-            <p className="text-sm text-gray-400">Billet ID will be auto-generated upon submission</p>
+            <p className="text-sm text-gray-400">Billet ID and Job Card number will be auto-generated upon submission</p>
           </div>
           <div className="p-4">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -553,3 +616,4 @@ export default function WorkflowEntryPage() {
     </div>
   )
 }
+

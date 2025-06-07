@@ -335,6 +335,7 @@ export default function LabTestingPage() {
   const [activeTab, setActiveTab] = useState("pending")
   const [formData, setFormData] = useState({
     billetId: "",
+    jobCard: "",
     heatNumber: "",
     carbon: "",
     sulfur: "",
@@ -357,7 +358,7 @@ export default function LabTestingPage() {
 
       // Use the direct Google Sheets URL format with range starting from row 2
       // Specifically targeting columns A through I as requested
-      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=LAB%20TESTING&range=A2:I1000`
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=LAB%20TESTING&range=A2:J1000`
 
       const response = await fetch(sheetUrl)
       const textData = await response.text()
@@ -386,6 +387,7 @@ export default function LabTestingPage() {
           status: displayAsStored(row[6]) || "Pass", // Column G - Status
           needTestingAgain: displayAsStored(row[7]) || "No", // Column H - Need Testing Again?
           remarks: displayAsStored(row[8]), // Column I - Remarks
+          jobCard: displayAsStored(row[9]), // Column J - Job Card
         }))
 
         console.log("Fetched LAB TESTING records:", labTestingRecords.length)
@@ -416,7 +418,7 @@ export default function LabTestingPage() {
       console.log("Fetching data from Google Sheet...")
 
       // Use the direct Google Sheets URL format with range starting from row 7
-      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=PRODUCTION&range=A7:AI1000`
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=PRODUCTION&range=A7:AJ1000`
 
       const response = await fetch(sheetUrl)
       const textData = await response.text()
@@ -504,6 +506,7 @@ export default function LabTestingPage() {
             metCoke: displayAsStored(row[12]), // Column M (index 12)
             productionMT: displayAsStored(row[13]), // Column N (index 13)
             status: "pending",
+            jobCard: displayAsStored(row[35]), // Column AJ (index 35)
           }
 
           console.log("Mapped pending record:", record)
@@ -524,6 +527,7 @@ export default function LabTestingPage() {
             status: displayAsStored(row[32]), // Column AG (index 32)
             needTestingAgain: displayAsStored(row[33]), // Column AH (index 33)
             remarks: displayAsStored(row[34]), // Column AI (index 34)
+            jobCard: displayAsStored(row[35]), // Column AJ (index 35)
           }
 
           console.log("Mapped history record:", record)
@@ -572,6 +576,7 @@ export default function LabTestingPage() {
         data.status, // Status (Pass/Fail as selected) - ensure this uses data.status directly
         data.needTestingAgain, // Need Testing Again? (Yes/No as selected)
         data.remarks, // Remarks
+        data.jobCard, // Job Card - Column J
       ]
 
       // Use your existing Apps Script to insert the data
@@ -706,6 +711,7 @@ export default function LabTestingPage() {
     // Initialize form with heat number and existing data if available
     setFormData({
       billetId: recordId,
+      jobCard: record ? record.jobCard : "",
       heatNumber: record ? record.heatNumber : "",
       carbon: record ? record.carbon : "",
       sulfur: record ? record.sulfur : "",
@@ -737,6 +743,7 @@ export default function LabTestingPage() {
     // Create new record with the structure we want
     const newRecord = {
       billetId: selectedBilletId,
+      jobCard: selectedRecord?.jobCard || "",
       heatNumber: selectedRecord?.heatNumber || "",
       carbon: formData.carbon,
       sulfur: formData.sulfur,
@@ -756,6 +763,7 @@ export default function LabTestingPage() {
         const newLabRecord = {
           id: `labtest-${Date.now()}`,
           timestamp: new Date().toLocaleDateString("en-GB"), // DD/MM/YYYY format
+          jobCard: newRecord.jobCard,
           heatNumber: newRecord.heatNumber,
           carbon: newRecord.carbon,
           sulfur: newRecord.sulfur,
@@ -788,6 +796,7 @@ export default function LabTestingPage() {
         // Reset form data
         setFormData({
           billetId: "",
+          jobCard: "",
           heatNumber: "",
           carbon: "",
           sulfur: "",
@@ -830,6 +839,7 @@ export default function LabTestingPage() {
         status: "Pass",
         needTestingAgain: "No",
         remarks: "Automatically marked as completed",
+        jobCard: record.jobCard,
       })
 
       if (result.success) {
@@ -865,6 +875,7 @@ export default function LabTestingPage() {
         status: "Fail",
         needTestingAgain: "Yes",
         remarks: "Rejected by user",
+        jobCard: record.jobCard,
       })
 
       if (result.success) {
@@ -940,20 +951,22 @@ export default function LabTestingPage() {
         <div className="bg-gray-900 text-white rounded-lg shadow-md border border-teal-200 mb-6">
           <div className="flex border-b border-teal-100">
             <button
-              className={`px-4 py-3 text-sm font-medium ${activeTab === "pending"
-                ? "border-b-2 border-teal-500 text-teal-600"
-                : "text-gray-500 hover:text-teal-600"
-                }`}
+              className={`px-4 py-3 text-sm font-medium ${
+                activeTab === "pending"
+                  ? "border-b-2 border-teal-500 text-teal-600"
+                  : "text-gray-500 hover:text-teal-600"
+              }`}
               onClick={() => setActiveTab("pending")}
             >
               <Clock className="inline-block mr-2 h-4 w-4" />
               Pending Tests
             </button>
             <button
-              className={`px-4 py-3 text-sm font-medium ${activeTab === "history"
-                ? "border-b-2 border-teal-500 text-teal-600"
-                : "text-gray-500 hover:text-gray-600"
-                }`}
+              className={`px-4 py-3 text-sm font-medium ${
+                activeTab === "history"
+                  ? "border-b-2 border-teal-500 text-teal-600"
+                  : "text-gray-500 hover:text-gray-600"
+              }`}
               onClick={() => setActiveTab("history")}
             >
               <CheckCircle2 className="inline-block mr-2 h-4 w-4" />
@@ -974,6 +987,7 @@ export default function LabTestingPage() {
                     <thead className="bg-gray-800 sticky top-0 z-10">
                       <tr className="text-left border-b border-gray-600">
                         <th className="px-4 py-3 font-medium w-24">Planned</th>
+                        <th className="px-4 py-3 font-medium w-32">Job Card</th>
                         <th className="px-4 py-3 font-medium w-32">Heat Number</th>
                         <th className="px-4 py-3 font-medium w-20">Drclo</th>
                         <th className="px-4 py-3 font-medium w-20">Pellet</th>
@@ -1004,6 +1018,7 @@ export default function LabTestingPage() {
                         .map((record) => (
                           <tr key={record.id} className="border-b border-gray-600 hover:bg-gray-800">
                             <td className="px-4 py-2 font-mono text-sm w-24">{record.planned}</td>
+                            <td className="px-4 py-2 font-mono text-sm w-32">{record.jobCard}</td>
                             <td className="px-4 py-2 font-mono text-sm w-32">{record.heatNumber}</td>
                             <td className="px-4 py-2 font-mono text-sm w-20">{record.drclo}</td>
                             <td className="px-4 py-2 font-mono text-sm w-20">{record.pellet}</td>
@@ -1020,23 +1035,33 @@ export default function LabTestingPage() {
                             <td className="px-4 py-2 w-20">
                               {(() => {
                                 const labTestResult = labTestingSheetRecords.find(
-                                  (labRecord) => labRecord.heatNumber === record.heatNumber
-                                );
+                                  (labRecord) => labRecord.heatNumber === record.heatNumber,
+                                )
 
-                                console.log(`Heat Number: ${record.heatNumber}, Lab Result:`, labTestResult);
+                                console.log(`Heat Number: ${record.heatNumber}, Lab Result:`, labTestResult)
 
                                 if (labTestResult && labTestResult.status) {
-                                  const status = labTestResult.status.toString().trim();
-                                  console.log(`Status value: "${status}"`);
+                                  const status = labTestResult.status.toString().trim()
+                                  console.log(`Status value: "${status}"`)
 
                                   if (status.toLowerCase() === "pass") {
-                                    return <Badge variant="success" className="capitalize">Pass</Badge>;
-                                  }
-                                  else if (status.toLowerCase() === "fail") {
-                                    return <Badge variant="danger" className="capitalize">Fail</Badge>;
-                                  }
-                                  else {
-                                    return <Badge variant="info" className="capitalize">{status}</Badge>;
+                                    return (
+                                      <Badge variant="success" className="capitalize">
+                                        Pass
+                                      </Badge>
+                                    )
+                                  } else if (status.toLowerCase() === "fail") {
+                                    return (
+                                      <Badge variant="danger" className="capitalize">
+                                        Fail
+                                      </Badge>
+                                    )
+                                  } else {
+                                    return (
+                                      <Badge variant="info" className="capitalize">
+                                        {status}
+                                      </Badge>
+                                    )
                                   }
                                 }
                                 // else {
@@ -1067,6 +1092,7 @@ export default function LabTestingPage() {
                     <thead className="bg-gray-800 sticky top-0 z-10">
                       <tr className="text-left border-b border-gray-600">
                         <th className="px-4 py-3 font-medium w-28">Timestamp</th>
+                        <th className="px-4 py-3 font-medium w-32">Job Card</th>
                         <th className="px-4 py-3 font-medium w-32">Heat Number</th>
                         <th className="px-4 py-3 font-medium w-24">Carbon %</th>
                         <th className="px-4 py-3 font-medium w-24">Sulfur %</th>
@@ -1081,6 +1107,7 @@ export default function LabTestingPage() {
                       {labTestingSheetRecords.map((record, index) => (
                         <tr key={`lab-${index}`} className="border-b border-gray-600 hover:bg-gray-800">
                           <td className="px-4 py-2 font-mono text-sm w-28">{record.timestamp}</td>
+                          <td className="px-4 py-2 font-mono text-sm w-32">{record.jobCard}</td>
                           <td className="px-4 py-2 font-mono text-sm w-32">{record.heatNumber}</td>
                           <td className="px-4 py-2 font-mono text-sm w-24">{record.carbon}</td>
                           <td className="px-4 py-2 font-mono text-sm w-24">{record.sulfur}</td>
@@ -1121,13 +1148,20 @@ export default function LabTestingPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Display Heat Number as header info */}
           <div className="bg-gray-700 p-3 rounded-md mb-4">
-            <div>
-              <p className="text-gray-300 text-sm">Heat Number:</p>
-              <p className="text-white font-medium font-mono">{selectedRecord?.heatNumber || "N/A"}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-gray-300 text-sm">Job Card:</p>
+                <p className="text-white font-medium font-mono">{selectedRecord?.jobCard || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-300 text-sm">Heat Number:</p>
+                <p className="text-white font-medium font-mono">{selectedRecord?.heatNumber || "N/A"}</p>
+              </div>
             </div>
           </div>
 
           <input type="hidden" id="billetId" name="billetId" value={formData.billetId} />
+          <input type="hidden" id="jobCard" name="jobCard" value={formData.jobCard} />
           <input type="hidden" id="heatNumber" name="heatNumber" value={formData.heatNumber} />
 
           <div className="grid grid-cols-2 gap-4">

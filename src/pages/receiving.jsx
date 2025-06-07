@@ -296,6 +296,7 @@ export default function ReceivingPage() {
   const [formData, setFormData] = useState({
     billetId: "",
     heatNumber: "",
+    jobCard: "",
     time: "",
     receivingQtyMt: "",
     ledel: "",
@@ -358,6 +359,7 @@ export default function ReceivingPage() {
             id: `prod-${actualRowNumber}`,
             actualRowNumber: actualRowNumber, // Store actual row number for updates
             timestamp: row[14] || "", // Column O - Timestamp (for internal use only)
+            jobCard: formatRichText(row[35] || ""), // Column AJ - Job Card
             heatNumber: formatRichText(row[1] || ""), // Column B7:B - Heat Number
             drclo: formatRichText(row[2] || ""), // Column C7:C - Drclo
             pellet: formatRichText(row[3] || ""), // Column D7:D - Pellet
@@ -432,6 +434,7 @@ export default function ReceivingPage() {
           bpCcmTo: formatRichText(row[7] || ""), // Column H2:H - B.P. CCM TO
           millToPcs: formatRichText(row[8] || ""), // Column I2:I - MILL TO. Pcs.
           remark: formatRichText(row[9] || ""), // Column J2:J - Remark
+          jobCard: formatRichText(row[10] || ""), // Column K2:K - Job Card
         }))
 
         console.log("Mapped receiving records from row 2 onwards:", mappedReceivingRecords)
@@ -484,6 +487,7 @@ export default function ReceivingPage() {
         processRichText(data.bpCcmTo),
         processRichText(data.millToPcs),
         processRichText(data.remark),
+        processRichText(data.jobCard), // Column K - Job Card
       ]
 
       console.log("Submitting to RECEIVING sheet:", rowData)
@@ -609,6 +613,7 @@ export default function ReceivingPage() {
 
     setFormData({
       heatNumber: record ? record.heatNumber : "",
+      jobCard: record ? record.jobCard : "",
       time: "",
       receivingQtyMt: "",
       ledel: "",
@@ -646,6 +651,7 @@ export default function ReceivingPage() {
     const newRecord = {
       billetId: selectedBilletId,
       heatNumber: selectedRecord?.heatNumber || "",
+      jobCard: selectedRecord?.jobCard || "",
       time: formData.time,
       receivingQtyMt: formData.receivingQtyMt,
       ledel: formData.ledel,
@@ -676,6 +682,7 @@ export default function ReceivingPage() {
         setFormData({
           billetId: "",
           heatNumber: "",
+          jobCard: "",
           time: "",
           receivingQtyMt: "",
           ledel: "",
@@ -801,6 +808,7 @@ export default function ReceivingPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left border-b border-gray-200">
+                        <th className="px-2 py-2 font-medium text-xs">Job Card</th>
                         <th className="px-2 py-2 font-medium text-xs">Heat Number</th>
                         <th className="px-2 py-2 font-medium text-xs">Drclo</th>
                         <th className="px-2 py-2 font-medium text-xs">Pellet</th>
@@ -820,6 +828,9 @@ export default function ReceivingPage() {
                     <tbody>
                       {pendingProductionRecords.map((record) => (
                         <tr key={record.id} className="border-b border-gray-600 hover:bg-gray-800">
+                          <td className="px-2 py-2 text-xs">
+                            <RichTextDisplay text={record.jobCard} maxWidth="max-w-24" />
+                          </td>
                           <td className="px-2 py-2 text-xs">
                             <RichTextDisplay text={record.heatNumber} maxWidth="max-w-24" />
                           </td>
@@ -885,6 +896,7 @@ export default function ReceivingPage() {
                   <thead>
                     <tr className="text-left border-b border-gray-200">
                       <th className="px-4 py-2 font-medium">Timestamp</th>
+                      <th className="px-4 py-2 font-medium">Job Card</th>
                       <th className="px-4 py-2 font-medium">Heat Number</th>
                       <th className="px-4 py-2 font-medium">Time</th>
                       <th className="px-4 py-2 font-medium">Receiving Qty (MT)</th>
@@ -901,6 +913,9 @@ export default function ReceivingPage() {
                       <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-800">
                         <td className="px-4 py-2">
                           <RichTextDisplay text={formatDateDDMMYYYY(record.timestamp)} maxWidth="max-w-32" />
+                        </td>
+                        <td className="px-4 py-2 text-xs">
+                          <RichTextDisplay text={record.jobCard} maxWidth="max-w-32" />
                         </td>
                         <td className="px-4 py-2 text-xs">
                           <RichTextDisplay text={record.heatNumber} maxWidth="max-w-32" />
@@ -949,16 +964,25 @@ export default function ReceivingPage() {
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Display billet ID and heat number as header info */}
           <div className="bg-gray-700 p-2 rounded-md mb-3 flex justify-between items-center">
-            <div>
-              <p className="text-gray-300 text-xs">Heat Number:</p>
-              <div className="text-white font-medium break-words text-sm">
-                <RichTextDisplay text={selectedRecord?.heatNumber} maxWidth="max-w-full" />
+            <div className="flex gap-4">
+              <div>
+                <p className="text-gray-300 text-xs">Job Card:</p>
+                <div className="text-white font-medium break-words text-sm">
+                  <RichTextDisplay text={selectedRecord?.jobCard} maxWidth="max-w-full" />
+                </div>
+              </div>
+              <div>
+                <p className="text-gray-300 text-xs">Heat Number:</p>
+                <div className="text-white font-medium break-words text-sm">
+                  <RichTextDisplay text={selectedRecord?.heatNumber} maxWidth="max-w-full" />
+                </div>
               </div>
             </div>
           </div>
 
           <input id="billetId" name="billetId" value={formData.billetId} type="hidden" />
           <input id="heatNumber" name="heatNumber" value={formData.heatNumber} type="hidden" />
+          <input id="jobCard" name="jobCard" value={formData.jobCard} type="hidden" />
 
           <div>
             <label htmlFor="time" className="block text-xs font-medium mb-1 text-gray-200">
