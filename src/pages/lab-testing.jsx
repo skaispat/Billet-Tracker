@@ -357,7 +357,7 @@ export default function LabTestingPage() {
       console.log("Fetching data from LAB TESTING sheet...")
 
       // Use the direct Google Sheets URL format with range starting from row 2
-      // Specifically targeting columns A through I as requested
+      // Specifically targeting columns A through J as requested
       const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=LAB%20TESTING&range=A2:J1000`
 
       const response = await fetch(sheetUrl)
@@ -1009,8 +1009,9 @@ export default function LabTestingPage() {
                       {pendingProductionRecords
                         .filter((record) => {
                           // Check if there's a corresponding lab test record with needTestingAgain = "No"
+                          // UPDATED: Compare by Job Card instead of Heat Number
                           const correspondingLabTest = labTestingSheetRecords.find(
-                            (labRecord) => labRecord.heatNumber === record.heatNumber,
+                            (labRecord) => labRecord.jobCard === record.jobCard,
                           )
                           // Hide the row if there's a lab test record with needTestingAgain = "No"
                           return !(correspondingLabTest && correspondingLabTest.needTestingAgain === "No")
@@ -1034,11 +1035,12 @@ export default function LabTestingPage() {
                             <td className="px-4 py-2 font-mono text-sm w-32">{record.productionMT}</td>
                             <td className="px-4 py-2 w-20">
                               {(() => {
+                                // UPDATED: Compare by Job Card instead of Heat Number
                                 const labTestResult = labTestingSheetRecords.find(
-                                  (labRecord) => labRecord.heatNumber === record.heatNumber,
+                                  (labRecord) => labRecord.jobCard === record.jobCard,
                                 )
 
-                                console.log(`Heat Number: ${record.heatNumber}, Lab Result:`, labTestResult)
+                                console.log(`Job Card: ${record.jobCard}, Lab Result:`, labTestResult)
 
                                 if (labTestResult && labTestResult.status) {
                                   const status = labTestResult.status.toString().trim()
@@ -1316,3 +1318,4 @@ export default function LabTestingPage() {
     </div>
   )
 }
+
