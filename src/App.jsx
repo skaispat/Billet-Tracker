@@ -6,7 +6,6 @@ import { Toaster } from "./components/ui/toaster.jsx"
 import { ThemeProvider } from "./components/theme-provider.jsx"
 
 // Pages
-import LoginPage from "./pages/login.jsx"
 import DashboardPage from "./pages/dashboard.jsx"
 import WorkflowPage from "./pages/workflow.jsx"
 import WorkflowEntryPage from "./pages/workflow-entry.jsx"
@@ -31,7 +30,8 @@ function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
 
         <Route
           path="/dashboard"
