@@ -104,6 +104,25 @@ const User = ({ className }) => (
   </svg>
 )
 
+const LogOut = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+    <polyline points="16 17 21 12 16 7"></polyline>
+    <line x1="21" x2="9" y1="12" y2="12"></line>
+  </svg>
+)
+
 const Moon = ({ className }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -247,7 +266,7 @@ const navigation = [
 export default function Header() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, hasPermission } = useAuth()
+  const { isAuthenticated, user, logout, hasPermission } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Close mobile menu when route changes
@@ -349,6 +368,14 @@ export default function Header() {
               <p className="text-gray-400 text-xs">{user?.username || "username"}</p>
               <p className="text-gray-500 text-xs mt-1">Role: {user?.role || "user"}</p>
             </div>
+            <hr className="my-1 border-gray-700" />
+            <button
+              onClick={() => logout()}
+              className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </button>
           </DropdownMenu>
         </div>
       </div>
